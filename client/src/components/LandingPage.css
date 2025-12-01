@@ -1,0 +1,436 @@
+.landing-page {
+  background-color: var(--dark-grey);
+  color: var(--white);
+  min-height: 100vh;
+}
+
+/* Navbar */
+.navbar {
+  background-color: var(--purdue-black);
+  padding: 20px 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.nav-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: -1px;
+}
+
+.logo-meet {
+  color: var(--white);
+}
+
+.logo-here {
+  color: var(--purdue-gold);
+}
+
+/* Hero Section */
+.hero {
+  padding: 120px 0 80px;
+  background: linear-gradient(135deg, var(--dark-grey) 0%, var(--charcoal) 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 50%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 50px,
+    rgba(206, 184, 136, 0.03) 50px,
+    rgba(206, 184, 136, 0.03) 52px
+  );
+  pointer-events: none;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  max-width: 600px;
+}
+
+.hero-badge {
+  display: inline-block;
+  background-color: rgba(206, 184, 136, 0.15);
+  color: var(--purdue-gold);
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 30px;
+  letter-spacing: 1px;
+}
+
+.hero-title {
+  font-size: 64px;
+  line-height: 1.1;
+  margin-bottom: 24px;
+  color: var(--white);
+}
+
+.highlight {
+  color: var(--purdue-gold);
+  position: relative;
+  display: inline-block;
+}
+
+.hero-subtitle {
+  font-size: 20px;
+  line-height: 1.6;
+  color: #b0b0b0;
+  margin-bottom: 40px;
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.btn-large {
+  padding: 16px 40px;
+  font-size: 18px;
+}
+
+.hero-visual {
+  position: absolute;
+  right: 10%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 400px;
+}
+
+.visual-card {
+  background-color: var(--charcoal);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(206, 184, 136, 0.2);
+}
+
+.card-header {
+  background-color: var(--purdue-black);
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(206, 184, 136, 0.2);
+}
+
+.card-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.card-dots span {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: var(--purdue-gold);
+  opacity: 0.6;
+}
+
+.card-content {
+  padding: 20px;
+}
+
+.sample-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.grid-row {
+  display: flex;
+  gap: 4px;
+}
+
+.grid-cell {
+  width: 40px;
+  height: 30px;
+  background-color: var(--purdue-gold);
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
+.grid-cell.filled {
+  background-color: var(--purdue-gold);
+}
+
+/* Features Section */
+.features {
+  padding: 100px 0;
+  background-color: var(--charcoal);
+}
+
+.section-title {
+  font-size: 48px;
+  text-align: center;
+  margin-bottom: 60px;
+  color: var(--white);
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 30px;
+}
+
+.feature-card {
+  background-color: var(--dark-grey);
+  padding: 40px 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(206, 184, 136, 0.1);
+  transition: all 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--purdue-gold);
+  box-shadow: 0 10px 30px rgba(206, 184, 136, 0.2);
+}
+
+.feature-icon {
+  font-size: 48px;
+  margin-bottom: 20px;
+}
+
+.feature-card h3 {
+  font-size: 24px;
+  margin-bottom: 16px;
+  color: var(--purdue-gold);
+}
+
+.feature-card p {
+  color: #b0b0b0;
+  line-height: 1.6;
+}
+
+/* How It Works */
+.how-it-works {
+  padding: 100px 0;
+  background-color: var(--dark-grey);
+}
+
+.steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-top: 60px;
+}
+
+.step {
+  text-align: center;
+  max-width: 200px;
+}
+
+.step-number {
+  width: 60px;
+  height: 60px;
+  background-color: var(--purdue-gold);
+  color: var(--purdue-black);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 900;
+  margin: 0 auto 20px;
+}
+
+.step h3 {
+  font-size: 20px;
+  margin-bottom: 10px;
+  color: var(--white);
+}
+
+.step p {
+  color: #b0b0b0;
+  font-size: 14px;
+}
+
+.step-connector {
+  width: 60px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--purdue-gold), transparent);
+}
+
+/* CTA Section */
+.cta {
+  padding: 100px 0;
+  background: linear-gradient(135deg, var(--purdue-black) 0%, var(--charcoal) 100%);
+}
+
+.cta-content {
+  text-align: center;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.cta-content h2 {
+  font-size: 48px;
+  margin-bottom: 20px;
+  color: var(--white);
+}
+
+.cta-content p {
+  font-size: 20px;
+  color: #b0b0b0;
+  margin-bottom: 40px;
+}
+
+/* Footer */
+.footer {
+  background-color: var(--purdue-black);
+  padding: 60px 0 30px;
+}
+
+.footer-content {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 60px;
+  margin-bottom: 40px;
+}
+
+.footer-brand h3 {
+  font-size: 28px;
+  color: var(--purdue-gold);
+  margin-bottom: 10px;
+}
+
+.footer-brand p {
+  color: #888;
+}
+
+.footer-links {
+  display: flex;
+  gap: 60px;
+}
+
+.footer-section h4 {
+  color: var(--purdue-gold);
+  margin-bottom: 16px;
+  font-size: 16px;
+}
+
+.footer-section a {
+  display: block;
+  color: #b0b0b0;
+  text-decoration: none;
+  margin-bottom: 10px;
+  font-size: 14px;
+  transition: color 0.3s ease;
+}
+
+.footer-section a:hover {
+  color: var(--purdue-gold);
+}
+
+.footer-bottom {
+  text-align: center;
+  padding-top: 30px;
+  border-top: 1px solid rgba(206, 184, 136, 0.1);
+  color: #666;
+  font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .hero-visual {
+    right: 5%;
+    width: 350px;
+  }
+}
+
+@media (max-width: 968px) {
+  .hero {
+    padding: 80px 0 60px;
+  }
+
+  .hero-visual {
+    position: relative;
+    right: auto;
+    top: auto;
+    transform: none;
+    margin: 60px auto 0;
+    max-width: 400px;
+  }
+
+  .hero-title {
+    font-size: 48px;
+  }
+
+  .hero-subtitle {
+    font-size: 18px;
+  }
+
+  .section-title {
+    font-size: 36px;
+  }
+
+  .steps {
+    flex-direction: column;
+  }
+
+  .step-connector {
+    width: 2px;
+    height: 40px;
+    background: linear-gradient(180deg, var(--purdue-gold), transparent);
+  }
+
+  .footer-content {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-title {
+    font-size: 36px;
+  }
+
+  .hero-subtitle {
+    font-size: 16px;
+  }
+
+  .hero-buttons {
+    flex-direction: column;
+  }
+
+  .btn-large {
+    width: 100%;
+    text-align: center;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section-title {
+    font-size: 28px;
+  }
+
+  .cta-content h2 {
+    font-size: 32px;
+  }
+
+  .footer-links {
+    flex-direction: column;
+    gap: 30px;
+  }
+}

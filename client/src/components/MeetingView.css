@@ -1,0 +1,316 @@
+.meeting-view {
+  min-height: 100vh;
+  background-color: var(--dark-grey);
+}
+
+.meeting-header {
+  background-color: var(--purdue-black);
+  padding: 20px 0;
+  border-bottom: 1px solid rgba(206, 184, 136, 0.2);
+}
+
+.meeting-content {
+  padding: 40px 0 80px;
+}
+
+.meeting-info-card {
+  background: linear-gradient(135deg, var(--charcoal) 0%, var(--dark-grey) 100%);
+  padding: 40px;
+  border-radius: 8px;
+  border: 1px solid rgba(206, 184, 136, 0.2);
+  margin-bottom: 40px;
+}
+
+.meeting-info-card h1 {
+  font-size: 36px;
+  color: var(--white);
+  margin-bottom: 12px;
+}
+
+.meeting-description {
+  color: #b0b0b0;
+  font-size: 16px;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+.meeting-meta {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding-top: 20px;
+  border-top: 1px solid #444;
+}
+
+.meta-item {
+  color: #b0b0b0;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.share-link {
+  background-color: var(--dark-grey);
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: var(--purdue-gold);
+  border: 1px solid #444;
+  margin-left: 8px;
+}
+
+.section {
+  margin-bottom: 40px;
+}
+
+.section-header {
+  font-size: 28px;
+  color: var(--white);
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--purdue-gold);
+}
+
+.user-form {
+  background-color: var(--charcoal);
+  padding: 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(206, 184, 136, 0.1);
+}
+
+.submit-section {
+  text-align: center;
+  margin-top: 60px;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  font-size: 20px;
+  color: #b0b0b0;
+}
+
+/* Results Section */
+.results-section {
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.success-message {
+  text-align: center;
+  padding: 60px 40px;
+  background: linear-gradient(135deg, rgba(206, 184, 136, 0.1) 0%, transparent 100%);
+  border-radius: 8px;
+  margin-bottom: 40px;
+  border: 1px solid rgba(206, 184, 136, 0.2);
+}
+
+.success-icon {
+  width: 80px;
+  height: 80px;
+  background-color: var(--purdue-gold);
+  color: var(--purdue-black);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  font-weight: 900;
+  margin: 0 auto 24px;
+  animation: scaleIn 0.5s ease;
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.success-message h2 {
+  font-size: 32px;
+  color: var(--white);
+  margin-bottom: 8px;
+}
+
+.success-message p {
+  color: #b0b0b0;
+  font-size: 18px;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.result-card {
+  background-color: var(--charcoal);
+  padding: 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(206, 184, 136, 0.2);
+  transition: all 0.3s ease;
+}
+
+.result-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--purdue-gold);
+  box-shadow: 0 10px 30px rgba(206, 184, 136, 0.2);
+}
+
+.result-card h3 {
+  font-size: 16px;
+  color: var(--purdue-gold);
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+}
+
+.result-value {
+  font-size: 24px;
+  color: var(--white);
+  margin-bottom: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.result-detail {
+  color: #b0b0b0;
+  font-size: 14px;
+}
+
+/* Participants List */
+.participants-list {
+  background-color: var(--charcoal);
+  padding: 24px;
+  border-radius: 8px;
+  border: 1px solid rgba(206, 184, 136, 0.1);
+}
+
+.participant-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background-color: var(--dark-grey);
+  border-radius: 6px;
+  margin-bottom: 12px;
+  transition: all 0.3s ease;
+}
+
+.participant-item:last-child {
+  margin-bottom: 0;
+}
+
+.participant-item:hover {
+  background-color: rgba(206, 184, 136, 0.05);
+  border-left: 3px solid var(--purdue-gold);
+}
+
+.participant-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: var(--purdue-gold);
+  color: var(--purdue-black);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.participant-info {
+  flex: 1;
+}
+
+.participant-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--white);
+  margin-bottom: 4px;
+}
+
+.participant-details {
+  font-size: 14px;
+  color: #b0b0b0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .meeting-content {
+    padding: 20px 0 40px;
+  }
+
+  .meeting-info-card {
+    padding: 24px;
+  }
+
+  .meeting-info-card h1 {
+    font-size: 28px;
+  }
+
+  .meeting-meta {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .section-header {
+    font-size: 24px;
+  }
+
+  .results-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .success-message {
+    padding: 40px 24px;
+  }
+
+  .success-icon {
+    width: 60px;
+    height: 60px;
+    font-size: 36px;
+  }
+
+  .success-message h2 {
+    font-size: 24px;
+  }
+
+  .participant-item {
+    padding: 12px;
+  }
+
+  .participant-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+
+  .participant-name {
+    font-size: 16px;
+  }
+
+  .participant-details {
+    font-size: 12px;
+  }
+}

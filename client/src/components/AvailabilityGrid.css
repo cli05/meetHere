@@ -1,0 +1,251 @@
+.availability-grid-container {
+  margin: 30px 0;
+}
+
+.grid-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 16px;
+  background-color: var(--dark-grey);
+  border-radius: 6px;
+  border: 1px solid #444;
+}
+
+.control-group {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  color: var(--white);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.toggle-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--purdue-gold);
+}
+
+.control-info {
+  color: #b0b0b0;
+  font-size: 14px;
+}
+
+.availability-grid {
+  background-color: var(--dark-grey);
+  border-radius: 6px;
+  overflow: auto;
+  border: 1px solid rgba(206, 184, 136, 0.2);
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.grid-header {
+  display: grid;
+  grid-template-columns: 100px repeat(7, 1fr);
+  background-color: var(--purdue-black);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-bottom: 2px solid var(--purdue-gold);
+}
+
+.grid-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.grid-row {
+  display: grid;
+  grid-template-columns: 100px repeat(7, 1fr);
+  border-bottom: 1px solid #333;
+}
+
+.grid-row:last-child {
+  border-bottom: none;
+}
+
+.grid-cell {
+  padding: 12px 8px;
+  text-align: center;
+  border-right: 1px solid #333;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.grid-cell:last-child {
+  border-right: none;
+}
+
+.header-cell {
+  font-weight: 700;
+  color: var(--purdue-gold);
+  font-size: 14px;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.time-header {
+  color: var(--white);
+}
+
+.day-name {
+  font-size: 16px;
+}
+
+.day-date {
+  font-size: 12px;
+  color: #b0b0b0;
+  font-weight: 400;
+}
+
+.time-cell {
+  font-size: 12px;
+  color: #b0b0b0;
+  font-weight: 600;
+  background-color: var(--charcoal);
+}
+
+.selectable-cell {
+  cursor: pointer;
+  transition: opacity 0.1s ease, transform 0.1s ease;
+  position: relative;
+}
+
+.selectable-cell:hover {
+  transform: scale(0.95);
+}
+
+.selectable-cell.selected {
+  opacity: 1 !important;
+}
+
+.selectable-cell::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.grid-legend {
+  display: flex;
+  gap: 24px;
+  margin-top: 20px;
+  padding: 16px;
+  background-color: var(--dark-grey);
+  border-radius: 6px;
+  justify-content: center;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #b0b0b0;
+}
+
+.legend-color {
+  width: 24px;
+  height: 24px;
+  border-radius: 3px;
+  border: 1px solid #444;
+}
+
+/* Responsive */
+@media (max-width: 968px) {
+  .availability-grid {
+    font-size: 12px;
+  }
+
+  .grid-header {
+    grid-template-columns: 80px repeat(7, minmax(60px, 1fr));
+  }
+
+  .grid-row {
+    grid-template-columns: 80px repeat(7, minmax(60px, 1fr));
+  }
+
+  .grid-cell {
+    padding: 8px 4px;
+    min-height: 40px;
+  }
+
+  .day-name {
+    font-size: 14px;
+  }
+
+  .day-date {
+    font-size: 10px;
+  }
+
+  .time-cell {
+    font-size: 10px;
+  }
+
+  .grid-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .control-info {
+    text-align: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .grid-header {
+    grid-template-columns: 60px repeat(7, minmax(50px, 1fr));
+  }
+
+  .grid-row {
+    grid-template-columns: 60px repeat(7, minmax(50px, 1fr));
+  }
+
+  .grid-cell {
+    padding: 6px 2px;
+    min-height: 35px;
+    font-size: 11px;
+  }
+
+  .day-name {
+    font-size: 12px;
+  }
+
+  .day-date {
+    font-size: 9px;
+  }
+
+  .grid-legend {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .selectable-cell {
+    touch-action: none;
+  }
+
+  .selectable-cell:hover {
+    transform: none;
+  }
+}
