@@ -9,6 +9,7 @@ import SignUp from './components/SignUp';
 import Dashboard from './components/Dashboard';
 import MeetingCreator from './components/MeetingCreator';
 import MeetingView from './components/MeetingView';
+import LocationTest from './components/LocationTest';
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
               } 
             />
             <Route path="/meeting/:id" element={<MeetingView />} />
+            <Route path="/test-location" element={<LocationTest />} />
           </Routes>
         </div>
       </Router>
