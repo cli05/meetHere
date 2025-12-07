@@ -1,8 +1,16 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import './LandingPage.css';
 
 const LandingPage = () => {
+  const { user, loading, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+  };
+
   return (
     <div className="landing-page">
       <nav className="navbar">
@@ -13,8 +21,23 @@ const LandingPage = () => {
               <span className="logo-here">Here</span>
             </h1>
             <div className="nav-links">
-              <Link to="/signin" className="btn btn-secondary" style={{ marginRight: '12px' }}>Sign In</Link>
-              <Link to="/signup" className="btn btn-primary">Get Started</Link>
+              {loading ? (
+                <span style={{ color: '#888' }}>Loading...</span>
+              ) : user ? (
+                <>
+                  <Link to="/dashboard" className="btn btn-secondary" style={{ marginRight: '12px' }}>
+                    Dashboard
+                  </Link>
+                  <button onClick={handleLogout} className="btn btn-primary">
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link to="/signin" className="btn btn-secondary" style={{ marginRight: '12px' }}>Sign In</Link>
+                  <Link to="/signup" className="btn btn-primary">Get Started</Link>
+                </>
+              )}
             </div>
           </div>
         </div>
