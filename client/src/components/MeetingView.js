@@ -255,6 +255,8 @@ const MeetingView = () => {
                 </p>
                 <AvailabilityGrid
                   isCreator={false}
+                  availableDays={meeting.availableDays}
+                  timeRange={meeting.timeRange}
                   onUpdate={handleAvailabilityUpdate}
                 />
                 {userAvailability.length > 0 && (
