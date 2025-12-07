@@ -9,6 +9,7 @@ const Dashboard = () => {
   const { user, logout } = useAuth();
   const [meetings, setMeetings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [expandedMeetings, setExpandedMeetings] = useState(new Set());
 
   useEffect(() => {
     fetchMeetings();
@@ -75,6 +76,18 @@ const Dashboard = () => {
       console.error('Delete meeting error:', error);
       alert('Failed to delete meeting. Please try again.');
     }
+  };
+
+  const toggleParticipants = (meetingId) => {
+    setExpandedMeetings(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(meetingId)) {
+        newSet.delete(meetingId);
+      } else {
+        newSet.add(meetingId);
+      }
+      return newSet;
+    });
   };
 
   return (
@@ -158,6 +171,22 @@ const Dashboard = () => {
                         <span className="info-label">👥 Participants:</span>
                         <span className="info-value">
                           {meeting.participants?.length || 0} joined
+                          {meeting.participants?.length > 0 && (
+                            <button
+                              onClick={() => toggleParticipants(meeting._id)}
+                              style={{
+                                marginLeft: '8px',
+                                background: 'none',
+                                border: 'none',
+                                color: '#CEB888',
+                                cursor: 'pointer',
+                                fontSize: '12px',
+                                textDecoration: 'underline'
+                              }}
+                            >
+                              {expandedMeetings.has(meeting._id) ? '▼ Hide' : '▶ View'}
+                            </button>
+                          )}
                         </span>
                       </div>
                       {meeting.optimalTime && meeting.availableDays?.[meeting.optimalTime.dayIndex] && (
@@ -177,6 +206,61 @@ const Dashboard = () => {
                         </div>
                       )}
                     </div>
+
+                    {expandedMeetings.has(meeting._id) && meeting.participants?.length > 0 && (
+                      <div className="participants-section" style={{
+                        marginTop: '16px',
+                        padding: '12px',
+                        background: '#f9f9f9',
+                        borderRadius: '8px',
+                        border: '1px solid #e0e0e0'
+                      }}>
+                        <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 600 }}>
+                          Participants ({meeting.participants.length})
+                        </h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {meeting.participants.map((participant, index) => (
+                            <div
+                              key={participant._id || index}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                padding: '8px',
+                                background: 'white',
+                                borderRadius: '6px',
+                                fontSize: '13px'
+                              }}
+                            >
+                              <div style={{
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '50%',
+                                background: '#CEB888',
+                                color: 'white',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 'bold',
+                                fontSize: '14px',
+                                flexShrink: 0
+                              }}>
+                                {participant.name?.charAt(0).toUpperCase() || '?'}
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontWeight: 500, color: '#333' }}>
+                                  {participant.name}
+                                </div>
+                                <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
+                                  {participant.availability?.length || 0} slots •
+                                  {participant.location?.buildingAbbr ? ` From ${participant.location.buildingAbbr}` : ' No location'}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     <div className="meeting-actions">
                       <button
