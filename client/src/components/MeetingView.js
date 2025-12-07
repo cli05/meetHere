@@ -17,6 +17,7 @@ const MeetingView = () => {
   const [error, setError] = useState('');
   const [optimalLocations, setOptimalLocations] = useState([]);
   const [locationTab, setLocationTab] = useState('participants'); // 'participants' or 'optimal'
+  const [selectedLocationDetail, setSelectedLocationDetail] = useState(null);
 
   useEffect(() => {
     fetchMeeting();
@@ -170,7 +171,7 @@ const MeetingView = () => {
             {meeting.description && <p className="meeting-description">{meeting.description}</p>}
             <div className="meeting-meta">
               <span className="meta-item">
-                👥 {meeting.participants?.length || 0} participants
+                {meeting.participants?.length || 0} participants
               </span>
               {meeting.locationConstraint?.enabled && (
                 <span className="meta-item">
@@ -260,11 +261,15 @@ const MeetingView = () => {
                     {locationTab === 'participants' && (
                       <div className="participant-locations-list">
                         {participantLocations.map((loc, index) => (
-                          <div key={index} className="location-card">
+                          <div 
+                            key={index} 
+                            className="location-card clickable"
+                            onClick={() => setSelectedLocationDetail(loc)}
+                          >
                             <div className="location-icon">📍</div>
                             <div className="location-info">
-                              <div className="location-name">{loc.buildingName}</div>
-                              <div className="location-abbr">{loc.buildingAbbr}</div>
+                              <div className="location-name">{loc.buildingName || 'Selected Location'}</div>
+                              <div className="location-abbr">{loc.buildingAbbr || `${loc.coordinates?.lat.toFixed(4)}, ${loc.coordinates?.lng.toFixed(4)}`}</div>
                               <div className="location-person">{loc.name}</div>
                             </div>
                           </div>
@@ -276,7 +281,11 @@ const MeetingView = () => {
                       <div className="optimal-locations-list">
                         {optimalLocations.length > 0 ? (
                           optimalLocations.map((loc, index) => (
-                            <div key={index} className="optimal-location-card">
+                            <div 
+                              key={index} 
+                              className="optimal-location-card clickable"
+                              onClick={() => setSelectedLocationDetail({ ...loc, buildingName: loc.name, buildingAbbr: loc.abbr })}
+                            >
                               <div className="optimal-rank">#{index + 1}</div>
                               <div className="optimal-info">
                                 <div className="optimal-name">
@@ -285,10 +294,10 @@ const MeetingView = () => {
                                 </div>
                                 <div className="optimal-stats">
                                   <span className="stat">
-                                    📏 Avg: {(loc.avgDistance * 3.28084 / 5280).toFixed(2)} mi
+                                    Avg: {(loc.avgDistance * 3.28084 / 5280).toFixed(2)} mi
                                   </span>
                                   <span className="stat">
-                                    ⏱️ ~{Math.round(loc.avgDistance * 3.28084 / 5280 * 20)} min walk
+                                    ~{Math.round(loc.avgDistance * 3.28084 / 5280 * 20)} min walk
                                   </span>
                                 </div>
                                 <div className="optimal-fairness">
@@ -308,6 +317,43 @@ const MeetingView = () => {
                 </div>
               )}
 
+              {selectedLocationDetail && (
+                <div className="location-detail-modal" onClick={() => setSelectedLocationDetail(null)}>
+                  <div className="location-detail-content" onClick={(e) => e.stopPropagation()}>
+                    <button className="close-button" onClick={() => setSelectedLocationDetail(null)}>×</button>
+                    <h3>📍 {selectedLocationDetail.buildingName || 'Selected Location'}</h3>
+                    {selectedLocationDetail.buildingAbbr && (
+                      <p className="location-abbr-detail">{selectedLocationDetail.buildingAbbr}</p>
+                    )}
+                    {selectedLocationDetail.name && (
+                      <p className="location-person-detail">Selected by: {selectedLocationDetail.name}</p>
+                    )}
+                    {selectedLocationDetail.coordinates && (
+                      <div className="location-coordinates">
+                        <p><strong>Coordinates:</strong></p>
+                        <p>Latitude: {selectedLocationDetail.coordinates.lat.toFixed(6)}</p>
+                        <p>Longitude: {selectedLocationDetail.coordinates.lng.toFixed(6)}</p>
+                        <a 
+                          href={`https://www.google.com/maps/search/?api=1&query=${selectedLocationDetail.coordinates.lat},${selectedLocationDetail.coordinates.lng}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-secondary"
+                        >
+                          Open in Google Maps
+                        </a>
+                      </div>
+                    )}
+                    {selectedLocationDetail.avgDistance && (
+                      <div className="location-stats-detail">
+                        <p><strong>Average Distance:</strong> {(selectedLocationDetail.avgDistance * 3.28084 / 5280).toFixed(2)} miles</p>
+                        <p><strong>Estimated Walk Time:</strong> ~{Math.round(selectedLocationDetail.avgDistance * 3.28084 / 5280 * 20)} minutes</p>
+                        <p><strong>Fairness Score:</strong> {selectedLocationDetail.fairnessScore < 100 ? 'Excellent' : selectedLocationDetail.fairnessScore < 200 ? 'Good' : 'Fair'}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="section">
                 <h2 className="section-header">Participants</h2>
                 <div className="participants-list">
@@ -321,7 +367,7 @@ const MeetingView = () => {
                           <div className="participant-name">{participant.name}</div>
                           <div className="participant-details">
                             {participant.availability?.length || 0} slots available
-                            {participant.location && ` • From ${participant.location.buildingAbbr}`}
+                            {participant.location && ` • From ${participant.location.buildingAbbr || participant.location.buildingName || 'Custom location'}`}
                           </div>
                         </div>
                       </div>
