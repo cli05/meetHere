@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axios from '../utils/axios';
 import './MeetingCreator.css';
+import LocationMap from './LocationMap';
 
 const MeetingCreator = () => {
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ const MeetingCreator = () => {
       radius: 4,
       address: '',
     },
+    creatorLocation: null, // Store creator's selected location
   });
 
   // Generate calendar days for the current month
@@ -328,7 +330,7 @@ const MeetingCreator = () => {
             <div className="creator-step">
               <h2>Location Preferences (Optional)</h2>
               <p className="step-description">
-                Set a location radius to help participants find a convenient meeting spot.
+                Set your starting location to help find the best meeting spot for everyone.
               </p>
               
               <div className="form-group">
@@ -344,12 +346,37 @@ const MeetingCreator = () => {
                       }
                     })}
                   />
-                  <span>Enable location preferences</span>
+                  <span>Enable location-based meeting suggestions</span>
                 </label>
               </div>
 
               {meetingData.locationConstraint.enabled && (
                 <>
+                  <div className="form-group">
+                    <label>Your Starting Location</label>
+                    <p className="field-hint">
+                      Select where you'll be coming from. Participants will also select their locations.
+                    </p>
+                    <LocationMap 
+                      onLocationSelect={(location) => setMeetingData({
+                        ...meetingData,
+                        creatorLocation: {
+                          buildingName: location.name,
+                          buildingAbbr: location.abbr,
+                          coordinates: {
+                            lat: location.lat,
+                            lng: location.lng,
+                          }
+                        }
+                      })}
+                    />
+                    {meetingData.creatorLocation && (
+                      <div className="location-selected-badge">
+                        ✓ Selected: {meetingData.creatorLocation.buildingName}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="form-group">
                     <label>Search Radius (miles)</label>
                     <input
@@ -366,34 +393,18 @@ const MeetingCreator = () => {
                       })}
                     />
                     <p className="field-hint">
-                      Participants will select locations within {meetingData.locationConstraint.radius} miles of the center point
+                      System will suggest locations within this radius
                     </p>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Center Location</label>
-                    <input
-                      type="text"
-                      placeholder="Enter address or landmark"
-                      value={meetingData.locationConstraint.address}
-                      onChange={(e) => setMeetingData({
-                        ...meetingData,
-                        locationConstraint: {
-                          ...meetingData.locationConstraint,
-                          address: e.target.value
-                        }
-                      })}
-                    />
-                    <p className="field-hint">Leave blank to use Purdue campus center</p>
                   </div>
 
                   <div className="location-info">
                     <div className="info-box">
                       <h3>📍 How it works</h3>
                       <ul>
-                        <li>Participants select where they're coming from</li>
-                        <li>Algorithm finds the optimal meeting location</li>
-                        <li>Results show the fairest spot for everyone</li>
+                        <li>You select where you're coming from</li>
+                        <li>Participants select their starting locations</li>
+                        <li>Algorithm finds optimal meeting spots</li>
+                        <li>Results show fairest locations for everyone</li>
                       </ul>
                     </div>
                   </div>
@@ -407,7 +418,7 @@ const MeetingCreator = () => {
                 <button 
                   className="btn btn-primary" 
                   onClick={handleSubmit}
-                  disabled={loading}
+                  disabled={loading || (meetingData.locationConstraint.enabled && !meetingData.creatorLocation)}
                 >
                   {loading ? 'Creating...' : 'Create Event'}
                 </button>

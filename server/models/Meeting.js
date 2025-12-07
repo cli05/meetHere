@@ -46,6 +46,15 @@ const meetingSchema = new mongoose.Schema({
     },
     address: String,
   },
+  // Creator's starting location
+  creatorLocation: {
+    buildingName: String,
+    buildingAbbr: String,
+    coordinates: {
+      lat: Number,
+      lng: Number,
+    },
+  },
   participants: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Participant',
