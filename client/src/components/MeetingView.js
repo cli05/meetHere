@@ -35,7 +35,15 @@ const MeetingView = () => {
       }
     } catch (err) {
       console.error('Error fetching meeting:', err);
-      setError('Failed to load meeting. Please check the link and try again.');
+
+      // Handle expired meeting (HTTP 410)
+      if (err.response && err.response.status === 410) {
+        setError('This meeting has expired and is no longer accepting responses.');
+      } else if (err.response && err.response.data && err.response.data.error) {
+        setError(err.response.data.error);
+      } else {
+        setError('Failed to load meeting. Please check the link and try again.');
+      }
     } finally {
       setLoading(false);
     }

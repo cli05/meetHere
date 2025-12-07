@@ -75,7 +75,7 @@ const meetingSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['active', 'completed', 'cancelled'],
+    enum: ['active', 'completed', 'cancelled', 'expired'],
     default: 'active',
   },
 }, {
@@ -90,8 +90,39 @@ meetingSchema.pre('save', function(next) {
   next();
 });
 
+// Method to check if meeting has expired
+meetingSchema.methods.isExpired = function() {
+  if (!this.availableDays || this.availableDays.length === 0) {
+    return false;
+  }
+
+  // Find the latest date from availableDays
+  const latestDate = new Date(Math.max(...this.availableDays.map(d => new Date(d))));
+
+  // Parse the end time (e.g., "21:00")
+  const [endHour, endMinute] = this.timeRange.endTime.split(':').map(Number);
+
+  // Set the expiration datetime to the latest date + end time
+  const expirationDateTime = new Date(latestDate);
+  expirationDateTime.setHours(endHour, endMinute, 0, 0);
+
+  // Compare with current time
+  const now = new Date();
+  return now > expirationDateTime;
+};
+
+// Method to update status to expired if needed
+meetingSchema.methods.checkAndUpdateExpiration = async function() {
+  if (this.status === 'active' && this.isExpired()) {
+    this.status = 'expired';
+    await this.save();
+    return true;
+  }
+  return false;
+};
+
 function generateShareLink() {
-  return Math.random().toString(36).substring(2, 15) + 
+  return Math.random().toString(36).substring(2, 15) +
          Math.random().toString(36).substring(2, 15);
 }
 

@@ -36,8 +36,12 @@ const Dashboard = () => {
     navigate('/');
   };
 
-  const copyLink = (shareLink) => {
-    const url = `${window.location.origin}/meeting/${shareLink}`;
+  const copyLink = (meeting) => {
+    if (meeting.status === 'expired') {
+      alert('Cannot share expired meeting link');
+      return;
+    }
+    const url = `${window.location.origin}/meeting/${meeting.shareLink}`;
     navigator.clipboard.writeText(url);
     alert('Link copied to clipboard!');
   };
@@ -45,6 +49,32 @@ const Dashboard = () => {
   const formatDate = (dateStr) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const handleDeleteMeeting = async (meeting) => {
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete "${meeting.name}"?\n\n` +
+      `This will permanently delete the meeting and all ${meeting.participants?.length || 0} participant responses.\n\n` +
+      `This action cannot be undone.`
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.delete(`/api/meetings/${meeting.shareLink}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.data.success) {
+        // Remove from local state
+        setMeetings(meetings.filter(m => m._id !== meeting._id));
+        alert('Meeting deleted successfully');
+      }
+    } catch (error) {
+      console.error('Delete meeting error:', error);
+      alert('Failed to delete meeting. Please try again.');
+    }
   };
 
   return (
@@ -149,17 +179,33 @@ const Dashboard = () => {
                     </div>
 
                     <div className="meeting-actions">
-                      <button 
+                      <button
                         className="btn btn-secondary btn-sm"
-                        onClick={() => copyLink(meeting.shareLink)}
+                        onClick={() => copyLink(meeting)}
+                        disabled={meeting.status === 'expired'}
+                        style={{
+                          opacity: meeting.status === 'expired' ? 0.5 : 1,
+                          cursor: meeting.status === 'expired' ? 'not-allowed' : 'pointer'
+                        }}
                       >
-                        📋 Copy Link
+                        📋 {meeting.status === 'expired' ? 'Expired' : 'Copy Link'}
                       </button>
-                      <button 
+                      <button
                         className="btn btn-primary btn-sm"
                         onClick={() => navigate(`/meeting/${meeting.shareLink}`)}
                       >
                         View →
+                      </button>
+                      <button
+                        className="btn btn-sm"
+                        onClick={() => handleDeleteMeeting(meeting)}
+                        style={{
+                          background: '#ff4444',
+                          color: 'white',
+                          border: 'none'
+                        }}
+                      >
+                        🗑️ Delete
                       </button>
                     </div>
                   </div>
