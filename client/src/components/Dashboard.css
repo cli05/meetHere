@@ -229,3 +229,22 @@
     font-size: 60px;
   }
 }
+
+/* Optimal results styling */
+.optimal-result {
+  background: linear-gradient(135deg, rgba(206, 184, 136, 0.15) 0%, rgba(206, 184, 136, 0.05) 100%);
+  border-left: 3px solid var(--purdue-gold);
+  padding: 8px 12px;
+  margin-top: 8px;
+  border-radius: 4px;
+}
+
+.optimal-result .info-label {
+  font-weight: 700;
+  color: var(--purdue-gold);
+}
+
+.optimal-result .info-value {
+  font-weight: 600;
+  color: #ffffff;
+}

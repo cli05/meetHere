@@ -130,8 +130,24 @@ const Dashboard = () => {
                           {meeting.participants?.length || 0} joined
                         </span>
                       </div>
+                      {meeting.optimalTime && meeting.availableDays?.[meeting.optimalTime.dayIndex] && (
+                        <div className="info-row optimal-result">
+                          <span className="info-label">⭐ Best Time:</span>
+                          <span className="info-value">
+                            {formatDate(meeting.availableDays[meeting.optimalTime.dayIndex])} ({meeting.optimalTime.participantCount} available)
+                          </span>
+                        </div>
+                      )}
+                      {meeting.optimalLocation && (
+                        <div className="info-row optimal-result">
+                          <span className="info-label">📍 Best Location:</span>
+                          <span className="info-value">
+                            {meeting.optimalLocation.buildingName || meeting.optimalLocation.buildingAbbr || 'Calculated Center'}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    
+
                     <div className="meeting-actions">
                       <button 
                         className="btn btn-secondary btn-sm"

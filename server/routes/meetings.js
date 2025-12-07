@@ -20,6 +20,17 @@ router.post('/', protect, async (req, res) => {
       timezone: timezone || 'America/New_York',
       locationConstraint: locationConstraint || { enabled: false },
       createdBy: req.user._id,
+      // TEMPORARY: Add mock optimal results for testing UI
+      optimalTime: {
+        dayIndex: 0,
+        timeIndex: 5,
+        participantCount: 3
+      },
+      optimalLocation: {
+        buildingName: 'Lawson Computer Science Building',
+        buildingAbbr: 'LWSN',
+        coordinates: { lat: 40.4283, lng: -86.9162 }
+      }
     });
 
     await meeting.save();
