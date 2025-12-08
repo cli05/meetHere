@@ -10,6 +10,7 @@ const Dashboard = () => {
   const [meetings, setMeetings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedMeetings, setExpandedMeetings] = useState(new Set());
+  const [optimalLocationsMap, setOptimalLocationsMap] = useState({});
 
   useEffect(() => {
     fetchMeetings();
@@ -21,14 +22,37 @@ const Dashboard = () => {
       const response = await axios.get('/api/meetings/my-meetings', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       if (response.data.success) {
         setMeetings(response.data.meetings);
+
+        // Fetch optimal locations for meetings with location services enabled
+        const meetingsWithLocations = response.data.meetings.filter(
+          m => m.locationConstraint?.enabled
+        );
+
+        for (const meeting of meetingsWithLocations) {
+          fetchOptimalLocations(meeting.shareLink);
+        }
       }
     } catch (error) {
       console.error('Fetch meetings error:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchOptimalLocations = async (shareLink) => {
+    try {
+      const response = await axios.get(`/api/meetings/${shareLink}/optimal-locations`);
+      if (response.data.success && response.data.optimalLocations.length > 0) {
+        setOptimalLocationsMap(prev => ({
+          ...prev,
+          [shareLink]: response.data.optimalLocations
+        }));
+      }
+    } catch (error) {
+      console.error('Fetch optimal locations error:', error);
     }
   };
 
@@ -201,7 +225,15 @@ const Dashboard = () => {
                         <div className="info-row optimal-result">
                           <span className="info-label">📍 Best Location:</span>
                           <span className="info-value">
-                            {meeting.optimalLocation.buildingName || meeting.optimalLocation.buildingAbbr || 'Calculated Center'}
+                            {optimalLocationsMap[meeting.shareLink]?.[0]?.name ||
+                             meeting.optimalLocation.buildingName ||
+                             meeting.optimalLocation.buildingAbbr ||
+                             'Calculated Center'}
+                            {optimalLocationsMap[meeting.shareLink]?.[0] && (
+                              <span style={{ fontSize: '12px', color: '#666', marginLeft: '4px' }}>
+                                ({optimalLocationsMap[meeting.shareLink][0].abbr})
+                              </span>
+                            )}
                           </span>
                         </div>
                       )}

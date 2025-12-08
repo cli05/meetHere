@@ -176,6 +176,20 @@ const MeetingView = () => {
 
   // Get optimal location display
   const getOptimalLocationDisplay = () => {
+    // If we have optimal locations from the algorithm, show the #1 location
+    if (optimalLocations && optimalLocations.length > 0) {
+      const topLocation = optimalLocations[0];
+      return (
+        <>
+          🏛️ {topLocation.name}
+          <div className="result-detail" style={{ marginTop: '8px' }}>
+            {topLocation.abbr} • Avg distance: {(topLocation.avgDistance * 3.28084 / 5280).toFixed(2)} mi
+          </div>
+        </>
+      );
+    }
+
+    // Fall back to calculated center point if no optimal locations yet
     if (!meeting.optimalLocation) {
       return 'Calculating...';
     }
