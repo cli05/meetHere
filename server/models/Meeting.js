@@ -68,10 +68,15 @@ const meetingSchema = new mongoose.Schema({
     },
   },
   optimalTime: {
-    date: Date,
-    startTime: String,
-    endTime: String,
-    participantCount: Number,
+    slots: [{
+      dayIndex: Number,
+      startTimeIndex: Number,
+      endTimeIndex: Number,
+      participantCount: Number,
+      everyoneAvailable: Boolean,
+    }],
+    everyoneAvailable: Boolean,
+    message: String,
   },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
