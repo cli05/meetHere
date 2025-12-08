@@ -213,11 +213,21 @@ const Dashboard = () => {
                           )}
                         </span>
                       </div>
-                      {meeting.optimalTime && meeting.availableDays?.[meeting.optimalTime.dayIndex] && (
+                      {meeting.optimalTime && meeting.optimalTime.slots && meeting.optimalTime.slots.length > 0 && (
                         <div className="info-row optimal-result">
-                          <span className="info-label">⭐ Best Time:</span>
+                          <span className="info-label">
+                            {meeting.optimalTime.everyoneAvailable ? '✅ Best Time:' : '⭐ Best Time:'}
+                          </span>
                           <span className="info-value">
-                            {formatDate(meeting.availableDays[meeting.optimalTime.dayIndex])} ({meeting.optimalTime.participantCount} available)
+                            {meeting.optimalTime.slots.length === 1 ? (
+                              <>
+                                {formatDate(meeting.availableDays[meeting.optimalTime.slots[0].dayIndex])} ({meeting.optimalTime.slots[0].participantCount} available)
+                              </>
+                            ) : (
+                              <>
+                                {meeting.optimalTime.slots.length} options ({meeting.optimalTime.everyoneAvailable ? 'Everyone' : `${meeting.optimalTime.slots[0].participantCount} people`})
+                              </>
+                            )}
                           </span>
                         </div>
                       )}

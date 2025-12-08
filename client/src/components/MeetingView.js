@@ -150,26 +150,61 @@ const MeetingView = () => {
     return `${displayHour}:${minutes} ${ampm}`;
   };
 
+  // Helper to convert time index to time string
+  const timeIndexToString = (timeIndex) => {
+    if (!meeting.timeRange) return '';
+
+    const [startHour, startMin] = meeting.timeRange.startTime.split(':').map(Number);
+
+    // Calculate the time by adding 30-minute increments
+    const totalMinutes = startHour * 60 + startMin + (timeIndex * 30);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  };
+
   // Get optimal time display
   const getOptimalTimeDisplay = () => {
     if (!meeting.optimalTime || !meeting.availableDays) {
       return 'Calculating...';
     }
 
-    const { dayIndex, participantCount } = meeting.optimalTime;
-    const date = meeting.availableDays[dayIndex];
+    const { slots, everyoneAvailable, message } = meeting.optimalTime;
 
-    if (!date) {
+    if (!slots || slots.length === 0) {
       return 'No optimal time found yet';
     }
 
     return (
       <>
-        {formatDate(date)}<br />
-        {formatTime(meeting.timeRange.startTime)} - {formatTime(meeting.timeRange.endTime)}
-        <div className="result-detail" style={{ marginTop: '8px' }}>
-          {participantCount} {participantCount === 1 ? 'person' : 'people'} available
+        <div style={{ marginBottom: '12px', fontWeight: 'bold', color: everyoneAvailable ? '#4CAF50' : '#FFA726' }}>
+          {everyoneAvailable ? '✅ Everyone Available!' : '⚠️ Best Options Available'}
         </div>
+        <div style={{ fontSize: '14px', marginBottom: '12px', color: '#666' }}>
+          {message}
+        </div>
+        {slots.map((slot, index) => {
+          const date = meeting.availableDays[slot.dayIndex];
+          const startTime = timeIndexToString(slot.startTimeIndex);
+          const endTime = timeIndexToString(slot.endTimeIndex + 1); // +1 because endTimeIndex is inclusive
+
+          return (
+            <div key={index} style={{
+              marginBottom: slots.length > 1 ? '8px' : '0',
+              padding: '8px',
+              background: everyoneAvailable ? '#E8F5E9' : '#FFF3E0',
+              borderRadius: '6px',
+              color: '#1a1a1a'
+            }}>
+              {formatDate(date)}<br />
+              {formatTime(startTime)} - {formatTime(endTime)}
+              <div className="result-detail" style={{ marginTop: '4px', fontSize: '12px', color: '#333' }}>
+                {slot.participantCount} {slot.participantCount === 1 ? 'person' : 'people'}
+              </div>
+            </div>
+          );
+        })}
       </>
     );
   };

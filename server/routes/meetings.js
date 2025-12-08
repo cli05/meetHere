@@ -162,15 +162,62 @@ router.delete('/:shareLink', async (req, res) => {
   }
 });
 
+// Helper function to group consecutive time slots on the same day
+function groupConsecutiveSlots(slots) {
+  if (slots.length === 0) return [];
+
+  // Sort slots by dayIndex, then timeIndex
+  const sortedSlots = [...slots].sort((a, b) => {
+    if (a.dayIndex !== b.dayIndex) return a.dayIndex - b.dayIndex;
+    return a.timeIndex - b.timeIndex;
+  });
+
+  const grouped = [];
+  let currentGroup = {
+    dayIndex: sortedSlots[0].dayIndex,
+    startTimeIndex: sortedSlots[0].timeIndex,
+    endTimeIndex: sortedSlots[0].timeIndex,
+    participantCount: sortedSlots[0].participantCount,
+    everyoneAvailable: sortedSlots[0].everyoneAvailable
+  };
+
+  for (let i = 1; i < sortedSlots.length; i++) {
+    const slot = sortedSlots[i];
+
+    // If same day and consecutive time slots, extend the current group
+    if (slot.dayIndex === currentGroup.dayIndex &&
+        slot.timeIndex === currentGroup.endTimeIndex + 1) {
+      currentGroup.endTimeIndex = slot.timeIndex;
+    } else {
+      // Save current group and start a new one
+      grouped.push({ ...currentGroup });
+      currentGroup = {
+        dayIndex: slot.dayIndex,
+        startTimeIndex: slot.timeIndex,
+        endTimeIndex: slot.timeIndex,
+        participantCount: slot.participantCount,
+        everyoneAvailable: slot.everyoneAvailable
+      };
+    }
+  }
+
+  // Add the last group
+  grouped.push(currentGroup);
+
+  return grouped;
+}
+
 // Helper function to calculate optimal meeting time
 function calculateOptimalTime(participants) {
   if (!participants || participants.length === 0) {
     return null;
   }
 
+  const totalParticipants = participants.length;
+
   // Count availability for each time slot
   const timeSlotCounts = {};
-  
+
   participants.forEach(participant => {
     participant.availability.forEach(slot => {
       const key = `${slot.dayIndex}-${slot.timeIndex}`;
@@ -178,23 +225,61 @@ function calculateOptimalTime(participants) {
     });
   });
 
-  // Find time slot with maximum participants
+  // Find all slots where EVERYONE is available
+  const perfectSlots = [];
+  const bestAlternativeSlots = [];
   let maxCount = 0;
-  let bestSlot = null;
 
   for (const [key, count] of Object.entries(timeSlotCounts)) {
-    if (count > maxCount) {
-      maxCount = count;
-      bestSlot = key;
+    if (count === totalParticipants) {
+      // Everyone is available at this slot
+      const [dayIndex, timeIndex] = key.split('-').map(Number);
+      perfectSlots.push({
+        dayIndex,
+        timeIndex,
+        participantCount: count,
+        everyoneAvailable: true
+      });
+    } else {
+      // Track the best alternative slots
+      if (count > maxCount) {
+        maxCount = count;
+        bestAlternativeSlots.length = 0; // Clear previous best
+        const [dayIndex, timeIndex] = key.split('-').map(Number);
+        bestAlternativeSlots.push({
+          dayIndex,
+          timeIndex,
+          participantCount: count,
+          everyoneAvailable: false
+        });
+      } else if (count === maxCount) {
+        const [dayIndex, timeIndex] = key.split('-').map(Number);
+        bestAlternativeSlots.push({
+          dayIndex,
+          timeIndex,
+          participantCount: count,
+          everyoneAvailable: false
+        });
+      }
     }
   }
 
-  if (bestSlot) {
-    const [dayIndex, timeIndex] = bestSlot.split('-').map(Number);
+  // Group consecutive slots on the same day
+  const groupedPerfectSlots = groupConsecutiveSlots(perfectSlots);
+  const groupedBestAlternativeSlots = groupConsecutiveSlots(bestAlternativeSlots);
+
+  // Return perfect slots if any exist, otherwise return best alternatives
+  if (groupedPerfectSlots.length > 0) {
     return {
-      dayIndex,
-      timeIndex,
-      participantCount: maxCount,
+      slots: groupedPerfectSlots,
+      everyoneAvailable: true,
+      message: `${groupedPerfectSlots.length} time range${groupedPerfectSlots.length > 1 ? 's' : ''} where everyone is available`
+    };
+  } else if (groupedBestAlternativeSlots.length > 0) {
+    return {
+      slots: groupedBestAlternativeSlots,
+      everyoneAvailable: false,
+      message: `Best option: ${maxCount} out of ${totalParticipants} participants available`
     };
   }
 
