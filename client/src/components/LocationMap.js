@@ -1,86 +1,222 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
 import './LocationMap.css';
+
+const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+
+// Purdue campus center coordinates
+const PURDUE_CENTER = {
+  lat: 40.4274,
+  lng: -86.9169,
+};
+
+const mapContainerStyle = {
+  width: '100%',
+  height: '500px',
+  borderRadius: '8px',
+};
+
+const mapOptions = {
+  disableDefaultUI: false,
+  zoomControl: true,
+  streetViewControl: false,
+  mapTypeControl: false,
+  fullscreenControl: true,
+  styles: [
+    {
+      featureType: 'poi',
+      elementType: 'labels',
+      stylers: [{ visibility: 'on' }],
+    },
+  ],
+};
 
 const LocationMap = ({ onLocationSelect }) => {
   const [selectedLocation, setSelectedLocation] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationError, setLocationError] = useState(null);
+  const [isLocating, setIsLocating] = useState(false);
+  const [map, setMap] = useState(null);
 
-  // Mock Purdue campus buildings
-  const campusBuildings = [
-    { id: 1, name: 'Lawson Computer Science Building', abbr: 'LWSN', lat: 40.4283, lng: -86.9162 },
-    { id: 2, name: 'Hicks Undergraduate Library', abbr: 'HICKS', lat: 40.4264, lng: -86.9214 },
-    { id: 3, name: 'Wilmeth Active Learning Center', abbr: 'WALC', lat: 40.4279, lng: -86.9166 },
-    { id: 4, name: 'Electrical Engineering Building', abbr: 'EE', lat: 40.4282, lng: -86.9169 },
-    { id: 5, name: 'Mathematical Sciences Building', abbr: 'MATH', lat: 40.4271, lng: -86.9152 },
-    { id: 6, name: 'Recitation Building', abbr: 'REC', lat: 40.4268, lng: -86.9203 },
-    { id: 7, name: 'Haas Hall', abbr: 'HAAS', lat: 40.4254, lng: -86.9189 },
-    { id: 8, name: 'Stanley Coulter Hall', abbr: 'SC', lat: 40.4255, lng: -86.9208 },
-    { id: 9, name: 'Stewart Center', abbr: 'STEW', lat: 40.4265, lng: -86.9186 },
-    { id: 10, name: 'Armstrong Hall', abbr: 'ARMS', lat: 40.4276, lng: -86.9194 },
-  ];
+  // Load Google Maps
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+  });
 
-  const filteredBuildings = searchQuery
-    ? campusBuildings.filter(
-        (building) =>
-          building.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          building.abbr.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : campusBuildings;
+  const onMapLoad = useCallback((mapInstance) => {
+    setMap(mapInstance);
+  }, []);
 
-  const handleSelectLocation = (building) => {
-    setSelectedLocation(building);
+  // Handle map click to drop a pin
+  const handleMapClick = (event) => {
+    const location = {
+      lat: event.latLng.lat(),
+      lng: event.latLng.lng(),
+      name: 'Selected Location',
+    };
+    setSelectedLocation(location);
     if (onLocationSelect) {
-      onLocationSelect(building);
+      onLocationSelect(location);
     }
+  };
+
+  // Get user's current location
+  const getCurrentLocation = () => {
+    setIsLocating(true);
+    setLocationError(null);
+
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported by your browser');
+      setIsLocating(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const userPos = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          name: 'My Location',
+        };
+        setUserLocation(userPos);
+        setSelectedLocation(userPos);
+        setIsLocating(false);
+
+        if (onLocationSelect) {
+          onLocationSelect(userPos);
+        }
+
+        // Pan map to user location
+        if (map) {
+          map.panTo({ lat: userPos.lat, lng: userPos.lng });
+          map.setZoom(17);
+        }
+      },
+      (error) => {
+        setIsLocating(false);
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            setLocationError('Location permission denied. Please enable location access.');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            setLocationError('Location information unavailable.');
+            break;
+          case error.TIMEOUT:
+            setLocationError('Location request timed out.');
+            break;
+          default:
+            setLocationError('An unknown error occurred.');
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  };
+
+  // Render map or fallback
+  const renderMap = () => {
+    if (loadError) {
+      return (
+        <div className="map-placeholder">
+          <div className="map-overlay">
+            <div className="map-icon">⚠️</div>
+            <h3>Map Loading Error</h3>
+            <p className="map-note">
+              Could not load Google Maps.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    if (!isLoaded) {
+      return (
+        <div className="map-placeholder">
+          <div className="map-overlay">
+            <div className="map-icon">🗺️</div>
+            <h3>Loading Map...</h3>
+          </div>
+        </div>
+      );
+    }
+
+    if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY === 'YOUR_API_KEY_HERE') {
+      return (
+        <div className="map-placeholder">
+          <div className="map-overlay">
+            <div className="map-icon">🔑</div>
+            <h3>API Key Required</h3>
+            <p className="map-note">
+              Please add your Google Maps API key to the .env file.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <GoogleMap
+        mapContainerStyle={mapContainerStyle}
+        center={selectedLocation ? { lat: selectedLocation.lat, lng: selectedLocation.lng } : PURDUE_CENTER}
+        zoom={selectedLocation ? 17 : 15}
+        options={mapOptions}
+        onLoad={onMapLoad}
+        onClick={handleMapClick}
+      >
+        {/* Selected location marker */}
+        {selectedLocation && (
+          <Marker
+            position={{ lat: selectedLocation.lat, lng: selectedLocation.lng }}
+            title={selectedLocation.name}
+            icon={{
+              url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png',
+            }}
+          />
+        )}
+
+        {/* User location marker */}
+        {userLocation && (
+          <Marker
+            position={userLocation}
+            title="Your Location"
+            icon={{
+              url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+            }}
+          />
+        )}
+      </GoogleMap>
+    );
   };
 
   return (
     <div className="location-map-container">
-      <div className="location-search">
-        <input
-          type="text"
-          placeholder="Search campus buildings..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="search-input"
-        />
+      <div className="location-controls">
+        <button
+          className="btn btn-location"
+          onClick={getCurrentLocation}
+          disabled={isLocating}
+        >
+          {isLocating ? '📍 Locating...' : '📍 Use My Location'}
+        </button>
+        <p className="location-hint">Click anywhere on the map to drop a pin</p>
       </div>
 
-      <div className="map-placeholder">
-        <div className="map-overlay">
-          <div className="map-icon">🗺️</div>
-          <h3>Purdue Campus Map</h3>
-          <p className="map-note">
-            Google Maps integration will be added here.<br />
-            For now, select your building from the list below.
-          </p>
+      {locationError && (
+        <div className="location-error">
+          ⚠️ {locationError}
         </div>
-      </div>
+      )}
 
-      <div className="buildings-list">
-        <h4>Select Your Starting Location</h4>
-        <div className="buildings-grid">
-          {filteredBuildings.map((building) => (
-            <div
-              key={building.id}
-              className={`building-card ${
-                selectedLocation?.id === building.id ? 'selected' : ''
-              }`}
-              onClick={() => handleSelectLocation(building)}
-            >
-              <div className="building-abbr">{building.abbr}</div>
-              <div className="building-name">{building.name}</div>
-              {selectedLocation?.id === building.id && (
-                <div className="selected-indicator">✓</div>
-              )}
-            </div>
-          ))}
-        </div>
+      <div className="map-container">
+        {renderMap()}
       </div>
 
       {selectedLocation && (
         <div className="selected-location-info">
-          <strong>Selected:</strong> {selectedLocation.name} ({selectedLocation.abbr})
+          <strong>Selected Location:</strong> {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
         </div>
       )}
     </div>

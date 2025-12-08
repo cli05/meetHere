@@ -1,42 +1,290 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import axios from '../utils/axios';
 import './MeetingView.css';
 import AvailabilityGrid from './AvailabilityGrid';
 import LocationMap from './LocationMap';
 
 const MeetingView = () => {
-  const { id } = useParams();
+  const { id } = useParams(); // This is the shareLink
   const navigate = useNavigate();
   const [meeting, setMeeting] = useState(null);
   const [userName, setUserName] = useState('');
+  const [userAvailability, setUserAvailability] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [optimalLocations, setOptimalLocations] = useState([]);
+  const [locationTab, setLocationTab] = useState('participants');
+  const [selectedLocationDetail, setSelectedLocationDetail] = useState(null);
 
+  // Fetch real meeting data on mount
   useEffect(() => {
-    // Fetch meeting data
-    // For MVP, using mock data
-    setMeeting({
-      id,
-      name: 'CS 390 Study Group',
-      description: 'Weekly study session for CS390WAP',
-      participants: [
-        { name: 'Alice', availability: 12, location: 'LWSN' },
-        { name: 'Bob', availability: 10, location: 'HAAS' },
-        { name: 'Charlie', availability: 15, location: 'WALC' },
-      ],
-    });
+    fetchMeeting();
   }, [id]);
 
-  const handleSubmit = () => {
-    // Submit availability and location
-    console.log('Submitting:', { userName, userLocation });
-    setHasSubmitted(true);
+  const fetchMeeting = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const response = await axios.get(`/api/meetings/${id}`);
+
+      if (response.data.success) {
+        setMeeting(response.data.meeting);
+        
+        // Fetch optimal locations if location services are enabled
+        if (response.data.meeting.locationConstraint?.enabled) {
+          fetchOptimalLocations();
+        }
+      } else {
+        setError('Meeting not found');
+      }
+    } catch (err) {
+      console.error('Error fetching meeting:', err);
+
+      // Handle expired meeting (HTTP 410)
+      if (err.response && err.response.status === 410) {
+        setError('This meeting has expired and is no longer accepting responses.');
+      } else if (err.response && err.response.data && err.response.data.error) {
+        setError(err.response.data.error);
+      } else {
+        setError('Failed to load meeting. Please check the link and try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const fetchOptimalLocations = async () => {
+    try {
+      const response = await axios.get(`/api/meetings/${id}/optimal-locations`);
+      if (response.data.success) {
+        setOptimalLocations(response.data.optimalLocations);
+      }
+    } catch (error) {
+      console.error('Fetch optimal locations error:', error);
+    }
+  };
+
+  const handleAvailabilityUpdate = (data) => {
+    // Convert selectedSlots array to availability format
+    const availability = data.selectedSlots.map(slot => {
+      const [dayIndex, timeIndex] = slot.split('-').map(Number);
+      return { dayIndex, timeIndex };
+    });
+    setUserAvailability(availability);
+  };
+
+  const handleSubmit = async () => {
+    if (!userName.trim()) {
+      setError('Please enter your name');
+      return;
+    }
+
+    if (userAvailability.length === 0) {
+      setError('Please select at least one time slot');
+      return;
+    }
+
+    if (!userLocation) {
+      setError('Please select your location');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setError('');
+
+      // Submit participant data
+      const participantData = {
+        meetingId: meeting._id,
+        name: userName.trim(),
+        availability: userAvailability,
+        location: {
+          buildingName: userLocation.name,
+          buildingAbbr: userLocation.abbr,
+          coordinates: {
+            lat: userLocation.lat,
+            lng: userLocation.lng
+          }
+        }
+      };
+
+      const response = await axios.post('/api/participants', participantData);
+
+      if (response.data.success) {
+        // Trigger recalculation of optimal time/location
+        await axios.put(`/api/meetings/${id}`);
+
+        // Refresh meeting data to get updated results
+        await fetchMeeting();
+
+        setHasSubmitted(true);
+      }
+    } catch (err) {
+      console.error('Error submitting availability:', err);
+      setError('Failed to submit. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Format date helper
+  const formatDate = (dateStr) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  // Format time helper
+  const formatTime = (time) => {
+    const [hours, minutes] = time.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
+    return `${displayHour}:${minutes} ${ampm}`;
+  };
+
+  // Helper to convert time index to time string
+  const timeIndexToString = (timeIndex) => {
+    if (!meeting.timeRange) return '';
+
+    const [startHour, startMin] = meeting.timeRange.startTime.split(':').map(Number);
+
+    // Calculate the time by adding 30-minute increments
+    const totalMinutes = startHour * 60 + startMin + (timeIndex * 30);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  };
+
+  // Get optimal time display
+  const getOptimalTimeDisplay = () => {
+    if (!meeting.optimalTime || !meeting.availableDays) {
+      return 'Calculating...';
+    }
+
+    const { slots, everyoneAvailable, message } = meeting.optimalTime;
+
+    if (!slots || slots.length === 0) {
+      return 'No optimal time found yet';
+    }
+
+    return (
+      <>
+        <div style={{ marginBottom: '12px', fontWeight: 'bold', color: everyoneAvailable ? '#4CAF50' : '#FFA726' }}>
+          {everyoneAvailable ? '✅ Everyone Available!' : '⚠️ Best Options Available'}
+        </div>
+        <div style={{ fontSize: '14px', marginBottom: '12px', color: '#666' }}>
+          {message}
+        </div>
+        {slots.map((slot, index) => {
+          const date = meeting.availableDays[slot.dayIndex];
+          const startTime = timeIndexToString(slot.startTimeIndex);
+          const endTime = timeIndexToString(slot.endTimeIndex + 1); // +1 because endTimeIndex is inclusive
+
+          return (
+            <div key={index} style={{
+              marginBottom: slots.length > 1 ? '8px' : '0',
+              padding: '8px',
+              background: everyoneAvailable ? '#E8F5E9' : '#FFF3E0',
+              borderRadius: '6px',
+              color: '#1a1a1a'
+            }}>
+              {formatDate(date)}<br />
+              {formatTime(startTime)} - {formatTime(endTime)}
+              <div className="result-detail" style={{ marginTop: '4px', fontSize: '12px', color: '#333' }}>
+                {slot.participantCount} {slot.participantCount === 1 ? 'person' : 'people'}
+              </div>
+            </div>
+          );
+        })}
+      </>
+    );
+  };
+
+  // Get optimal location display
+  const getOptimalLocationDisplay = () => {
+    // If we have optimal locations from the algorithm, show the #1 location
+    if (optimalLocations && optimalLocations.length > 0) {
+      const topLocation = optimalLocations[0];
+      return (
+        <>
+          🏛️ {topLocation.name}
+          <div className="result-detail" style={{ marginTop: '8px' }}>
+            {topLocation.abbr} • Avg distance: {(topLocation.avgDistance * 3.28084 / 5280).toFixed(2)} mi
+          </div>
+        </>
+      );
+    }
+
+    // Fall back to calculated center point if no optimal locations yet
+    if (!meeting.optimalLocation) {
+      return 'Calculating...';
+    }
+
+    const { buildingName, buildingAbbr } = meeting.optimalLocation;
+    return `🏛️ ${buildingName || buildingAbbr || 'Calculated Center Point'}`;
+  };
+
+  // Get all participant locations including creator
+  const getAllParticipantLocations = () => {
+    const locations = [];
+    
+    if (meeting.creatorLocation) {
+      locations.push({
+        name: 'Creator',
+        ...meeting.creatorLocation
+      });
+    }
+    
+    meeting.participants?.forEach(p => {
+      if (p.location) {
+        locations.push({
+          name: p.name,
+          ...p.location
+        });
+      }
+    });
+    
+    return locations;
+  };
+
+  if (loading) {
+    return (
+      <div className="meeting-view">
+        <div className="loading">Loading meeting...</div>
+      </div>
+    );
+  }
+
+  if (error && !meeting) {
+    return (
+      <div className="meeting-view">
+        <div className="meeting-content">
+          <div className="container">
+            <div className="error-message">
+              <h2>❌ {error}</h2>
+              <button className="btn btn-primary" onClick={() => navigate('/')}>
+                Go Home
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!meeting) {
     return (
       <div className="meeting-view">
-        <div className="loading">Loading meeting...</div>
+        <div className="loading">Meeting not found</div>
       </div>
     );
   }
@@ -59,13 +307,28 @@ const MeetingView = () => {
             {meeting.description && <p className="meeting-description">{meeting.description}</p>}
             <div className="meeting-meta">
               <span className="meta-item">
-                👥 {meeting.participants.length} participants
+                👥 {meeting.participants?.length || 0} participants
               </span>
               <span className="meta-item">
-                📋 Share: <code className="share-link">{window.location.href}</code>
+                📅 {meeting.availableDays?.length || 0} days available
+              </span>
+              <span className="meta-item">
+                ⏰ {formatTime(meeting.timeRange.startTime)} - {formatTime(meeting.timeRange.endTime)}
               </span>
             </div>
           </div>
+
+          {error && (
+            <div className="error-banner" style={{
+              padding: '12px',
+              background: '#ff4444',
+              color: 'white',
+              borderRadius: '8px',
+              marginBottom: '20px'
+            }}>
+              {error}
+            </div>
+          )}
 
           {!hasSubmitted ? (
             <>
@@ -86,12 +349,28 @@ const MeetingView = () => {
 
               <div className="section">
                 <h2 className="section-header">Mark Your Availability</h2>
-                <AvailabilityGrid isCreator={false} />
+                <p style={{ marginBottom: '16px', color: '#666' }}>
+                  Select the times when you're available to meet
+                </p>
+                <AvailabilityGrid
+                  isCreator={false}
+                  availableDays={meeting.availableDays}
+                  timeRange={meeting.timeRange}
+                  onUpdate={handleAvailabilityUpdate}
+                />
+                {userAvailability.length > 0 && (
+                  <p style={{ marginTop: '12px', color: '#CEB888' }}>
+                    ✓ {userAvailability.length} time slots selected
+                  </p>
+                )}
               </div>
 
               <div className="section">
                 <h2 className="section-header">Your Starting Location</h2>
-                <LocationMap 
+                <p style={{ marginBottom: '16px', color: '#666' }}>
+                  Where will you be coming from?
+                </p>
+                <LocationMap
                   onLocationSelect={(location) => setUserLocation(location)}
                 />
               </div>
@@ -100,9 +379,9 @@ const MeetingView = () => {
                 <button
                   className="btn btn-primary btn-large"
                   onClick={handleSubmit}
-                  disabled={!userName.trim() || !userLocation}
+                  disabled={!userName.trim() || !userLocation || userAvailability.length === 0 || submitting}
                 >
-                  Submit Availability
+                  {submitting ? 'Submitting...' : 'Submit Availability'}
                 </button>
               </div>
             </>
@@ -120,43 +399,172 @@ const MeetingView = () => {
                   <div className="result-card">
                     <h3>Best Meeting Time</h3>
                     <div className="result-value">
-                      Wednesday, Dec 4<br />
-                      2:00 PM - 3:30 PM
-                    </div>
-                    <div className="result-detail">
-                      {meeting.participants.length} of {meeting.participants.length} available
+                      {getOptimalTimeDisplay()}
                     </div>
                   </div>
 
                   <div className="result-card">
                     <h3>Optimal Location</h3>
                     <div className="result-value">
-                      🏛️ Lawson Computer Science Building
+                      {getOptimalLocationDisplay()}
                     </div>
                     <div className="result-detail">
-                      Average 5 min walk for all participants
+                      Most central location for all participants
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="section">
-                <h2 className="section-header">Participants</h2>
-                <div className="participants-list">
-                  {meeting.participants.map((participant, index) => (
-                    <div key={index} className="participant-item">
-                      <div className="participant-avatar">
-                        {participant.name.charAt(0)}
+              {meeting.locationConstraint?.enabled && getAllParticipantLocations().length > 0 && (
+                <div className="section">
+                  <h2 className="section-header">Meeting Locations</h2>
+                  
+                  <div className="location-tabs">
+                    <button 
+                      className={`tab-button ${locationTab === 'participants' ? 'active' : ''}`}
+                      onClick={() => setLocationTab('participants')}
+                    >
+                      Where Everyone Wants to Meet ({getAllParticipantLocations().length})
+                    </button>
+                    <button 
+                      className={`tab-button ${locationTab === 'optimal' ? 'active' : ''}`}
+                      onClick={() => setLocationTab('optimal')}
+                    >
+                      Ideal Locations ({optimalLocations.length})
+                    </button>
+                  </div>
+
+                  <div className="tab-content">
+                    {locationTab === 'participants' && (
+                      <div className="participant-locations-list">
+                        {getAllParticipantLocations().map((loc, index) => (
+                          <div 
+                            key={index} 
+                            className="location-card clickable"
+                            onClick={() => setSelectedLocationDetail(loc)}
+                          >
+                            <div className="location-icon">📍</div>
+                            <div className="location-info">
+                              <div className="location-name">{loc.buildingName || 'Selected Location'}</div>
+                              <div className="location-abbr">{loc.buildingAbbr || `${loc.coordinates?.lat.toFixed(4)}, ${loc.coordinates?.lng.toFixed(4)}`}</div>
+                              <div className="location-person">{loc.name}</div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      <div className="participant-info">
-                        <div className="participant-name">{participant.name}</div>
-                        <div className="participant-details">
-                          {participant.availability} slots available • From {participant.location}
+                    )}
+
+                    {locationTab === 'optimal' && (
+                      <div className="optimal-locations-list">
+                        {optimalLocations.length > 0 ? (
+                          optimalLocations.map((loc, index) => (
+                            <div 
+                              key={index} 
+                              className="optimal-location-card clickable"
+                              onClick={() => setSelectedLocationDetail({ ...loc, buildingName: loc.name, buildingAbbr: loc.abbr })}
+                            >
+                              <div className="optimal-rank">#{index + 1}</div>
+                              <div className="optimal-info">
+                                <div className="optimal-name">
+                                  {loc.name}
+                                  <span className="optimal-abbr">{loc.abbr}</span>
+                                </div>
+                                <div className="optimal-stats">
+                                  <span className="stat">
+                                    Avg: {(loc.avgDistance * 3.28084 / 5280).toFixed(2)} mi
+                                  </span>
+                                  <span className="stat">
+                                    ~{Math.round(loc.avgDistance * 3.28084 / 5280 * 20)} min walk
+                                  </span>
+                                </div>
+                                <div className="optimal-fairness">
+                                  Fairness score: {loc.fairnessScore < 100 ? 'Excellent' : loc.fairnessScore < 200 ? 'Good' : 'Fair'}
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="no-locations">
+                            <p>Optimal locations will be calculated once more participants submit their locations.</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {selectedLocationDetail && (
+                <div className="location-detail-modal" onClick={() => setSelectedLocationDetail(null)}>
+                  <div className="location-detail-content" onClick={(e) => e.stopPropagation()}>
+                    <button className="close-button" onClick={() => setSelectedLocationDetail(null)}>×</button>
+                    <h3>📍 {selectedLocationDetail.buildingName || 'Selected Location'}</h3>
+                    {selectedLocationDetail.buildingAbbr && (
+                      <p className="location-abbr-detail">{selectedLocationDetail.buildingAbbr}</p>
+                    )}
+                    {selectedLocationDetail.name && (
+                      <p className="location-person-detail">Selected by: {selectedLocationDetail.name}</p>
+                    )}
+                    {selectedLocationDetail.coordinates && (
+                      <div className="location-coordinates">
+                        <p><strong>Coordinates:</strong></p>
+                        <p>Latitude: {selectedLocationDetail.coordinates.lat.toFixed(6)}</p>
+                        <p>Longitude: {selectedLocationDetail.coordinates.lng.toFixed(6)}</p>
+                        <a 
+                          href={`https://www.google.com/maps/search/?api=1&query=${selectedLocationDetail.coordinates.lat},${selectedLocationDetail.coordinates.lng}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-secondary"
+                        >
+                          Open in Google Maps
+                        </a>
+                      </div>
+                    )}
+                    {selectedLocationDetail.avgDistance && (
+                      <div className="location-stats-detail">
+                        <p><strong>Average Distance:</strong> {(selectedLocationDetail.avgDistance * 3.28084 / 5280).toFixed(2)} miles</p>
+                        <p><strong>Estimated Walk Time:</strong> ~{Math.round(selectedLocationDetail.avgDistance * 3.28084 / 5280 * 20)} minutes</p>
+                        <p><strong>Fairness Score:</strong> {selectedLocationDetail.fairnessScore < 100 ? 'Excellent' : selectedLocationDetail.fairnessScore < 200 ? 'Good' : 'Fair'}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="section">
+                <h2 className="section-header">Participants ({meeting.participants?.length || 0})</h2>
+                <div className="participants-list">
+                  {meeting.participants && meeting.participants.length > 0 ? (
+                    meeting.participants.map((participant, index) => (
+                      <div key={participant._id || index} className="participant-item">
+                        <div className="participant-avatar">
+                          {participant.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="participant-info">
+                          <div className="participant-name">{participant.name}</div>
+                          <div className="participant-details">
+                            {participant.availability?.length || 0} slots available
+                            {participant.location?.buildingAbbr && ` • From ${participant.location.buildingAbbr}`}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <p style={{ color: '#666' }}>No participants yet</p>
+                  )}
                 </div>
+              </div>
+
+              <div className="section">
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    navigator.clipboard.writeText(window.location.href);
+                    alert('Share link copied to clipboard!');
+                  }}
+                >
+                  📋 Copy Share Link
+                </button>
               </div>
             </div>
           )}

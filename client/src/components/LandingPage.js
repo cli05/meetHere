@@ -1,8 +1,16 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import './LandingPage.css';
 
 const LandingPage = () => {
+  const { user, loading, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+  };
+
   return (
     <div className="landing-page">
       <nav className="navbar">
@@ -13,7 +21,23 @@ const LandingPage = () => {
               <span className="logo-here">Here</span>
             </h1>
             <div className="nav-links">
-              <Link to="/create" className="btn btn-primary">Get Started</Link>
+              {loading ? (
+                <span style={{ color: '#888' }}>Loading...</span>
+              ) : user ? (
+                <>
+                  <Link to="/dashboard" className="btn btn-secondary" style={{ marginRight: '12px' }}>
+                    Dashboard
+                  </Link>
+                  <button onClick={handleLogout} className="btn btn-primary">
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link to="/signin" className="btn btn-secondary" style={{ marginRight: '12px' }}>Sign In</Link>
+                  <Link to="/signup" className="btn btn-primary">Get Started</Link>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -34,8 +58,8 @@ const LandingPage = () => {
               No more endless group chats. No more inconvenient locations.
             </p>
             <div className="hero-buttons">
-              <Link to="/create" className="btn btn-primary btn-large">
-                Create Meeting
+              <Link to="/signup" className="btn btn-primary btn-large">
+                Get Started
               </Link>
               <a href="#features" className="btn btn-secondary btn-large">
                 Learn More
@@ -153,7 +177,7 @@ const LandingPage = () => {
           <div className="cta-content">
             <h2>Ready to Coordinate Your Team?</h2>
             <p>Join Purdue students simplifying group meetings</p>
-            <Link to="/create" className="btn btn-primary btn-large">
+            <Link to="/signup" className="btn btn-primary btn-large">
               Create Your First Meeting
             </Link>
           </div>
@@ -172,7 +196,7 @@ const LandingPage = () => {
                 <h4>Product</h4>
                 <a href="#features">Features</a>
                 <a href="#how-it-works">How It Works</a>
-                <Link to="/create">Create Meeting</Link>
+                <Link to="/signup">Get Started</Link>
               </div>
               <div className="footer-section">
                 <h4>About</h4>

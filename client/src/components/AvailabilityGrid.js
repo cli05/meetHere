@@ -1,45 +1,84 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './AvailabilityGrid.css';
 
-const AvailabilityGrid = ({ isCreator = false, onUpdate }) => {
+const AvailabilityGrid = ({
+  isCreator = false,
+  onUpdate,
+  availableDays = [],  // Array of date strings from meeting (e.g., ["2025-12-15", "2025-12-18"])
+  timeRange = { startTime: '09:00', endTime: '21:00' }  // Meeting's time range
+}) => {
   const [selectedSlots, setSelectedSlots] = useState(new Set());
   const [isDragging, setIsDragging] = useState(false);
   const [isPaintMode, setIsPaintMode] = useState(false);
   const [dragMode, setDragMode] = useState(null); // 'select' or 'deselect'
   const gridRef = useRef(null);
 
-  // Generate time slots (9 AM to 9 PM in 30-minute intervals)
-  const timeSlots = [];
-  for (let hour = 9; hour <= 21; hour++) {
-    for (let minute = 0; minute < 60; minute += 30) {
-      if (hour === 21 && minute > 0) break; // Stop at 9:00 PM
-      const time = `${hour > 12 ? hour - 12 : hour}:${minute.toString().padStart(2, '0')} ${hour >= 12 ? 'PM' : 'AM'}`;
-      timeSlots.push(time);
-    }
-  }
+  // Helper function to generate time slots from time range
+  const generateTimeSlots = () => {
+    const slots = [];
+    const [startHour, startMin] = timeRange.startTime.split(':').map(Number);
+    const [endHour, endMin] = timeRange.endTime.split(':').map(Number);
 
-  // Generate days (next 7 days)
-  const days = [];
-  const today = new Date();
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(today);
-    date.setDate(today.getDate() + i);
-    days.push({
-      name: date.toLocaleDateString('en-US', { weekday: 'short' }),
-      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      full: date,
-    });
-  }
+    let currentHour = startHour;
+    let currentMin = startMin;
+
+    while (currentHour < endHour || (currentHour === endHour && currentMin <= endMin)) {
+      const hour12 = currentHour > 12 ? currentHour - 12 : (currentHour === 0 ? 12 : currentHour);
+      const ampm = currentHour >= 12 ? 'PM' : 'AM';
+      const time = `${hour12}:${currentMin.toString().padStart(2, '0')} ${ampm}`;
+      slots.push(time);
+
+      // Increment by 30 minutes
+      currentMin += 30;
+      if (currentMin >= 60) {
+        currentMin = 0;
+        currentHour++;
+      }
+    }
+
+    return slots;
+  };
+
+  // Generate time slots from meeting's time range
+  const timeSlots = generateTimeSlots();
+
+  // Generate days from meeting's availableDays
+  const days = availableDays.length > 0
+    ? availableDays.map(dateStr => {
+        const date = new Date(dateStr);
+        return {
+          name: date.toLocaleDateString('en-US', { weekday: 'short' }),
+          date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          full: date,
+          originalDate: dateStr
+        };
+      })
+    : // Fallback to next 7 days if no availableDays provided (shouldn't happen)
+      (() => {
+        const fallbackDays = [];
+        const today = new Date();
+        for (let i = 0; i < 7; i++) {
+          const date = new Date(today);
+          date.setDate(today.getDate() + i);
+          fallbackDays.push({
+            name: date.toLocaleDateString('en-US', { weekday: 'short' }),
+            date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            full: date,
+            originalDate: date.toISOString().split('T')[0]
+          });
+        }
+        return fallbackDays;
+      })();
 
   const getCellId = (dayIndex, timeIndex) => `${dayIndex}-${timeIndex}`;
 
   const handleMouseDown = (dayIndex, timeIndex) => {
     if (isPaintMode) return;
-    
+
     setIsDragging(true);
     const cellId = getCellId(dayIndex, timeIndex);
     const newSelected = new Set(selectedSlots);
-    
+
     if (newSelected.has(cellId)) {
       newSelected.delete(cellId);
       setDragMode('deselect');
@@ -47,22 +86,22 @@ const AvailabilityGrid = ({ isCreator = false, onUpdate }) => {
       newSelected.add(cellId);
       setDragMode('select');
     }
-    
+
     setSelectedSlots(newSelected);
   };
 
   const handleMouseEnter = (dayIndex, timeIndex) => {
     if (!isDragging || isPaintMode) return;
-    
+
     const cellId = getCellId(dayIndex, timeIndex);
     const newSelected = new Set(selectedSlots);
-    
+
     if (dragMode === 'select') {
       newSelected.add(cellId);
     } else if (dragMode === 'deselect') {
       newSelected.delete(cellId);
     }
-    
+
     setSelectedSlots(newSelected);
   };
 
@@ -73,16 +112,16 @@ const AvailabilityGrid = ({ isCreator = false, onUpdate }) => {
 
   const handleTouchStart = (dayIndex, timeIndex) => {
     if (!isPaintMode) return;
-    
+
     const cellId = getCellId(dayIndex, timeIndex);
     const newSelected = new Set(selectedSlots);
-    
+
     if (newSelected.has(cellId)) {
       newSelected.delete(cellId);
     } else {
       newSelected.add(cellId);
     }
-    
+
     setSelectedSlots(newSelected);
   };
 
@@ -96,6 +135,7 @@ const AvailabilityGrid = ({ isCreator = false, onUpdate }) => {
     if (onUpdate) {
       onUpdate({ selectedSlots: Array.from(selectedSlots) });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSlots]);
 
   const getOpacity = (dayIndex, timeIndex) => {
@@ -128,8 +168,21 @@ const AvailabilityGrid = ({ isCreator = false, onUpdate }) => {
         </div>
       </div>
 
-      <div 
-        className="availability-grid" 
+      {availableDays.length === 0 && (
+        <div style={{
+          padding: '12px',
+          background: '#ff9800',
+          color: 'white',
+          borderRadius: '8px',
+          marginBottom: '12px',
+          textAlign: 'center'
+        }}>
+          ⚠️ No dates available for this meeting
+        </div>
+      )}
+
+      <div
+        className="availability-grid"
         ref={gridRef}
         onMouseLeave={handleMouseUp}
       >
@@ -176,6 +229,11 @@ const AvailabilityGrid = ({ isCreator = false, onUpdate }) => {
           <div className="legend-color" style={{ backgroundColor: 'var(--purdue-gold)', opacity: 0.2 }}></div>
           <span>Not Available</span>
         </div>
+      </div>
+
+      <div style={{ marginTop: '12px', fontSize: '14px', color: '#666' }}>
+        Showing {days.length} {days.length === 1 ? 'day' : 'days'} •
+        {timeSlots.length} time slots ({timeRange.startTime} - {timeRange.endTime})
       </div>
     </div>
   );

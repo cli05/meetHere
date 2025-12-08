@@ -1,0 +1,148 @@
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--dark-grey) 0%, var(--charcoal) 100%);
+  padding: 40px 20px;
+}
+
+.auth-container {
+  width: 100%;
+  max-width: 450px;
+  background-color: var(--charcoal);
+  border-radius: 12px;
+  padding: 48px 40px;
+  border: 1px solid rgba(206, 184, 136, 0.2);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.auth-logo {
+  font-size: 36px;
+  font-weight: 900;
+  margin-bottom: 24px;
+  letter-spacing: -1px;
+}
+
+.auth-logo a {
+  text-decoration: none;
+}
+
+.auth-header h2 {
+  font-size: 28px;
+  color: var(--white);
+  margin-bottom: 8px;
+}
+
+.auth-header p {
+  color: #b0b0b0;
+  font-size: 16px;
+}
+
+.auth-form {
+  margin-bottom: 24px;
+}
+
+.auth-error {
+  background-color: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.5);
+  color: #fca5a5;
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.auth-form .form-group {
+  margin-bottom: 20px;
+}
+
+.auth-form .form-group:last-of-type {
+  margin-bottom: 32px;
+}
+
+.auth-form label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--purdue-gold);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.auth-form input {
+  width: 100%;
+  padding: 14px 16px;
+  background-color: var(--dark-grey);
+  border: 2px solid #444;
+  border-radius: 6px;
+  color: var(--white);
+  font-size: 16px;
+  font-family: inherit;
+  transition: all 0.3s ease;
+}
+
+.auth-form input:focus {
+  outline: none;
+  border-color: var(--purdue-gold);
+  background-color: rgba(206, 184, 136, 0.05);
+}
+
+.auth-form input::placeholder {
+  color: #666;
+}
+
+.btn-full {
+  width: 100%;
+}
+
+.auth-footer {
+  text-align: center;
+  padding-top: 24px;
+  border-top: 1px solid #444;
+}
+
+.auth-footer p {
+  color: #b0b0b0;
+  font-size: 14px;
+}
+
+.auth-link {
+  color: var(--purdue-gold);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.auth-link:hover {
+  color: #d4c599;
+  text-decoration: underline;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .auth-container {
+    padding: 32px 24px;
+  }
+
+  .auth-logo {
+    font-size: 28px;
+  }
+
+  .auth-header h2 {
+    font-size: 24px;
+  }
+
+  .auth-header p {
+    font-size: 14px;
+  }
+}
