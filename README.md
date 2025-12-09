@@ -1,6 +1,5 @@
 # meetHere 📍
-
-Deployment Link: https://meethere-ten.vercel.app/
+https://meethere-ten.vercel.app/
 
 **Streamline group coordination for teams everywhere**
 
@@ -54,6 +53,23 @@ MeetHere merges two workflows into one intuitive tool:
 ![Meeting Map](./images/googlemaps.png)
 ![Availability Grid](./images/showmeetings.png)
 
+## 🎨 UI/UX Design
+
+### Color Palette
+- **Primary**: Apple Blue (#0071e3)
+- **Secondary**: Dark Grey (#1d1d1f)
+- **Background**: Light Grey (#f5f5f7) / White
+- **Accents**: Subtle shadows, rounded corners
+
+### Typography
+- **Headers**: Impact (bold, industrial feel)
+- **Body**: Open Sans (clean, readable)
+
+### Component Design
+- **Availability Grid**: Gold gradient (0/5 = Grey, 5/5 = Deep Gold)
+- **Map Markers**: Black dots for users, "Motion P" for destination
+- **Mobile Touch**: Paint mode toggle for easy mobile selection
+  
 ## 🛠️ Tech Stack
 
 ### Frontend
@@ -190,23 +206,6 @@ meetHere/
 - `GET /api/participants/:id` - Get specific participant
 - `PUT /api/participants/:id` - Update participant availability
 - `DELETE /api/participants/:id` - Delete participant
-
-## 🎨 UI/UX Design
-
-### Color Palette
-- **Primary**: Apple Blue (#0071e3)
-- **Secondary**: Dark Grey (#1d1d1f)
-- **Background**: Light Grey (#f5f5f7) / White
-- **Accents**: Subtle shadows, rounded corners
-
-### Typography
-- **Headers**: Impact (bold, industrial feel)
-- **Body**: Open Sans (clean, readable)
-
-### Component Design
-- **Availability Grid**: Gold gradient (0/5 = Grey, 5/5 = Deep Gold)
-- **Map Markers**: Black dots for users, "Motion P" for destination
-- **Mobile Touch**: Paint mode toggle for easy mobile selection
 
 ## 🔮 Future Enhancements
 
