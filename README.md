@@ -1,5 +1,7 @@
 # meetHere 📍
 
+Deployment Link: https://meethere-ten.vercel.app/
+
 **Streamline group coordination for teams everywhere**
 
 meetHere is a web-based application designed to solve the two most common friction points in student group work: finding a time when everyone is free and finding a location that is geographically fair for all attendees.
