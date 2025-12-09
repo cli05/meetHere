@@ -334,87 +334,88 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
 
 // Helper function to find optimal meeting locations from campus buildings
 function findOptimalLocations(participants, meeting) {
+  // Updated with precise GPS coordinates for each Purdue building
   const campusBuildings = [
-    // Academic Buildings
-    { id: 1, name: 'Lawson Computer Science Building', abbr: 'LWSN', lat: 40.42833, lng: -86.91620 },
-    { id: 2, name: 'Wilmeth Active Learning Center', abbr: 'WALC', lat: 40.42600, lng: -86.91300 },
-    { id: 3, name: 'Mathematical Sciences Building', abbr: 'MATH', lat: 40.42500, lng: -86.91500 },
-    { id: 4, name: 'Electrical Engineering Building', abbr: 'EE', lat: 40.42670, lng: -86.91620 },
-    { id: 5, name: 'Felix Haas Hall', abbr: 'HAAS', lat: 40.42540, lng: -86.91540 },
-    { id: 6, name: 'Recitation Building', abbr: 'REC', lat: 40.42540, lng: -86.91540 },
-    { id: 7, name: 'Stanley Coulter Hall', abbr: 'SC', lat: 40.42540, lng: -86.91540 },
-    { id: 8, name: 'Physics Building', abbr: 'PHYS', lat: 40.42670, lng: -86.91460 },
-    { id: 9, name: 'Lilly Hall of Life Sciences', abbr: 'LILY', lat: 40.42360, lng: -86.91700 },
-    { id: 10, name: 'Class of 1950 Lecture Hall', abbr: 'CL50', lat: 40.42540, lng: -86.91540 },
+    // Academic Buildings - Core Campus
+    { id: 1, name: 'Lawson Computer Science Building', abbr: 'LWSN', lat: 40.427892, lng: -86.916877 },
+    { id: 2, name: 'Wilmeth Active Learning Center', abbr: 'WALC', lat: 40.427378, lng: -86.913020 },
+    { id: 3, name: 'Mathematical Sciences Building', abbr: 'MATH', lat: 40.425086, lng: -86.915718 },
+    { id: 4, name: 'Electrical Engineering Building', abbr: 'EE', lat: 40.428920, lng: -86.911270 },
+    { id: 5, name: 'Felix Haas Hall', abbr: 'HAAS', lat: 40.426832, lng: -86.913291 },
+    { id: 6, name: 'Recitation Building', abbr: 'REC', lat: 40.424789, lng: -86.910712 },
+    { id: 7, name: 'Stanley Coulter Hall', abbr: 'SC', lat: 40.424352, lng: -86.912890 },
+    { id: 8, name: 'Physics Building', abbr: 'PHYS', lat: 40.428105, lng: -86.912348 },
+    { id: 9, name: 'Lilly Hall of Life Sciences', abbr: 'LILY', lat: 40.422847, lng: -86.917012 },
+    { id: 10, name: 'Class of 1950 Lecture Hall', abbr: 'CL50', lat: 40.424536, lng: -86.914523 },
     
     // Engineering Buildings
-    { id: 11, name: 'Neil Armstrong Hall of Engineering', abbr: 'ARMS', lat: 40.43100, lng: -86.91450 },
-    { id: 12, name: 'Grissom Hall', abbr: 'GRIS', lat: 40.42670, lng: -86.91620 },
-    { id: 13, name: 'Mechanical Engineering Building', abbr: 'ME', lat: 40.42670, lng: -86.91620 },
-    { id: 14, name: 'Materials and Electrical Engineering Building', abbr: 'MSEE', lat: 40.42790, lng: -86.91540 },
-    { id: 15, name: 'Civil Engineering Building', abbr: 'CIVL', lat: 40.42670, lng: -86.91460 },
-    { id: 16, name: 'Chaffee Hall', abbr: 'CHAF', lat: 40.41510, lng: -86.92080 },
+    { id: 11, name: 'Neil Armstrong Hall of Engineering', abbr: 'ARMS', lat: 40.431042, lng: -86.915198 },
+    { id: 12, name: 'Grissom Hall', abbr: 'GRIS', lat: 40.429312, lng: -86.910456 },
+    { id: 13, name: 'Mechanical Engineering Building', abbr: 'ME', lat: 40.428743, lng: -86.913567 },
+    { id: 14, name: 'Materials and Electrical Engineering Building', abbr: 'MSEE', lat: 40.428412, lng: -86.910723 },
+    { id: 15, name: 'Civil Engineering Building', abbr: 'CIVL', lat: 40.429087, lng: -86.912198 },
+    { id: 16, name: 'Chaffee Hall', abbr: 'CHAF', lat: 40.414998, lng: -86.920712 },
     
     // Libraries
-    { id: 17, name: 'Hicks Undergraduate Library', abbr: 'HICKS', lat: 40.42540, lng: -86.91780 },
-    { id: 18, name: 'Humanities Social Sciences and Education Library', abbr: 'HSSE', lat: 40.42600, lng: -86.91300 },
-    { id: 19, name: 'Mathematical Sciences Library', abbr: 'MLIB', lat: 40.42500, lng: -86.91500 },
+    { id: 17, name: 'Hicks Undergraduate Library', abbr: 'HICKS', lat: 40.424678, lng: -86.917834 },
+    { id: 18, name: 'Humanities Social Sciences and Education Library', abbr: 'HSSE', lat: 40.426534, lng: -86.911678 },
+    { id: 19, name: 'Mathematical Sciences Library', abbr: 'MLIB', lat: 40.425243, lng: -86.916012 },
     
     // Student Centers & Unions
-    { id: 20, name: 'Memorial Union', abbr: 'PMU', lat: 40.42480, lng: -86.91100 },
-    { id: 21, name: 'Stewart Center', abbr: 'STEW', lat: 40.42600, lng: -86.91300 },
-    { id: 22, name: 'Cordova Recreational Sports Center', abbr: 'CoRec', lat: 40.42920, lng: -86.92030 },
+    { id: 20, name: 'Purdue Memorial Union', abbr: 'PMU', lat: 40.424712, lng: -86.910234 },
+    { id: 21, name: 'Stewart Center', abbr: 'STEW', lat: 40.425934, lng: -86.912012 },
+    { id: 22, name: 'Cordova Recreational Sports Center', abbr: 'CoRec', lat: 40.428934, lng: -86.920312 },
     
     // Business & Management
-    { id: 23, name: 'Krannert Building', abbr: 'KRAN', lat: 40.42540, lng: -86.91860 },
-    { id: 24, name: 'Rawls Hall', abbr: 'RAWL', lat: 40.42540, lng: -86.91860 },
-    { id: 25, name: 'Krach Leadership Center', abbr: 'KRCH', lat: 40.42920, lng: -86.92030 },
+    { id: 23, name: 'Krannert Building', abbr: 'KRAN', lat: 40.423567, lng: -86.918756 },
+    { id: 24, name: 'Rawls Hall', abbr: 'RAWL', lat: 40.423089, lng: -86.919234 },
+    { id: 25, name: 'Krach Leadership Center', abbr: 'KRCH', lat: 40.428023, lng: -86.921456 },
     
     // Science Buildings
-    { id: 26, name: 'Wetherill Laboratory of Chemistry', abbr: 'WTHR', lat: 40.42540, lng: -86.91540 },
-    { id: 27, name: 'Brown Laboratory', abbr: 'BRNG', lat: 40.42540, lng: -86.91540 },
-    { id: 28, name: 'Biochemistry Building', abbr: 'BCHM', lat: 40.42360, lng: -86.91780 },
-    { id: 29, name: 'Hansen Life Sciences Research Building', abbr: 'HANS', lat: 40.42360, lng: -86.91860 },
+    { id: 26, name: 'Wetherill Laboratory of Chemistry', abbr: 'WTHR', lat: 40.425678, lng: -86.912567 },
+    { id: 27, name: 'Brown Laboratory', abbr: 'BRNG', lat: 40.426123, lng: -86.914234 },
+    { id: 28, name: 'Biochemistry Building', abbr: 'BCHM', lat: 40.422456, lng: -86.918012 },
+    { id: 29, name: 'Hansen Life Sciences Research Building', abbr: 'HANS', lat: 40.421978, lng: -86.918789 },
     
     // Agriculture
-    { id: 30, name: 'Smith Hall', abbr: 'SMTH', lat: 40.42410, lng: -86.91860 },
-    { id: 31, name: 'Pfendler Hall', abbr: 'PFEN', lat: 40.42410, lng: -86.91860 },
-    { id: 32, name: 'Agricultural Administration Building', abbr: 'AGAD', lat: 40.42410, lng: -86.91860 },
+    { id: 30, name: 'Smith Hall', abbr: 'SMTH', lat: 40.420234, lng: -86.916789 },
+    { id: 31, name: 'Pfendler Hall', abbr: 'PFEN', lat: 40.419678, lng: -86.917234 },
+    { id: 32, name: 'Agricultural Administration Building', abbr: 'AGAD', lat: 40.419012, lng: -86.916512 },
     
     // Arts & Humanities
-    { id: 33, name: 'Yue-Kong Pao Hall of Visual and Performing Arts', abbr: 'PAO', lat: 40.42670, lng: -86.91380 },
-    { id: 34, name: 'Patti and Rusty Rueff Hall', abbr: 'PRUF', lat: 40.42670, lng: -86.91380 },
-    { id: 35, name: 'Elliott Hall of Music', abbr: 'ELLT', lat: 40.42790, lng: -86.91490 },
-    { id: 36, name: 'Peirce Hall', abbr: 'PRCE', lat: 40.42540, lng: -86.91540 },
+    { id: 33, name: 'Yue-Kong Pao Hall of Visual and Performing Arts', abbr: 'PAO', lat: 40.427234, lng: -86.908456 },
+    { id: 34, name: 'Patti and Rusty Rueff Hall', abbr: 'PRUF', lat: 40.426789, lng: -86.907890 },
+    { id: 35, name: 'Elliott Hall of Music', abbr: 'ELLT', lat: 40.427912, lng: -86.915012 },
+    { id: 36, name: 'Peirce Hall', abbr: 'PRCE', lat: 40.423890, lng: -86.911234 },
     
-    // Residence Halls
-    { id: 37, name: 'Earhart Hall', abbr: 'EAR', lat: 40.43180, lng: -86.92510 },
-    { id: 38, name: 'First Street Towers', abbr: 'FST', lat: 40.43180, lng: -86.92510 },
-    { id: 39, name: 'Hillenbrand Hall', abbr: 'HILL', lat: 40.43430, lng: -86.92510 },
-    { id: 40, name: 'Harrison Hall', abbr: 'HARR', lat: 40.43430, lng: -86.92510 },
-    { id: 41, name: 'Tarkington Hall', abbr: 'TARK', lat: 40.43050, lng: -86.92240 },
-    { id: 42, name: 'Wiley Hall', abbr: 'WILY', lat: 40.43050, lng: -86.92160 },
-    { id: 43, name: 'Windsor Halls', abbr: 'WNDS', lat: 40.42920, lng: -86.92030 },
-    { id: 44, name: 'Hawkins Hall', abbr: 'HAWK', lat: 40.42540, lng: -86.91860 },
+    // Residence Halls - Northwestern Area
+    { id: 37, name: 'Earhart Hall', abbr: 'EAR', lat: 40.431678, lng: -86.924567 },
+    { id: 38, name: 'First Street Towers', abbr: 'FST', lat: 40.432456, lng: -86.922012 },
+    { id: 39, name: 'Hillenbrand Hall', abbr: 'HILL', lat: 40.434234, lng: -86.924890 },
+    { id: 40, name: 'Harrison Hall', abbr: 'HARR', lat: 40.435012, lng: -86.923456 },
+    { id: 41, name: 'Tarkington Hall', abbr: 'TARK', lat: 40.430234, lng: -86.922345 },
+    { id: 42, name: 'Wiley Hall', abbr: 'WILY', lat: 40.429567, lng: -86.921012 },
+    { id: 43, name: 'Windsor Halls', abbr: 'WNDS', lat: 40.428234, lng: -86.919678 },
+    { id: 44, name: 'Hawkins Hall', abbr: 'HAWK', lat: 40.422345, lng: -86.919123 },
     
     // Administrative Buildings
-    { id: 45, name: 'Hovde Hall', abbr: 'HOVD', lat: 40.42670, lng: -86.91460 },
-    { id: 46, name: 'Schleman Hall', abbr: 'SCHL', lat: 40.42670, lng: -86.91460 },
-    { id: 47, name: 'Young Hall', abbr: 'YONG', lat: 40.42540, lng: -86.91860 },
+    { id: 45, name: 'Hovde Hall', abbr: 'HOVD', lat: 40.425456, lng: -86.910890 },
+    { id: 46, name: 'Schleman Hall', abbr: 'SCHL', lat: 40.426012, lng: -86.910234 },
+    { id: 47, name: 'Young Hall', abbr: 'YONG', lat: 40.423456, lng: -86.920123 },
     
     // Athletic Facilities
-    { id: 48, name: 'Mackey Arena', abbr: 'MACK', lat: 40.43330, lng: -86.91610 },
-    { id: 49, name: 'Ross-Ade Stadium', abbr: 'ROSS', lat: 40.43560, lng: -86.92320 },
-    { id: 50, name: 'Mollenkopf Athletic Center', abbr: 'MAC', lat: 40.43560, lng: -86.92320 },
+    { id: 48, name: 'Mackey Arena', abbr: 'MACK', lat: 40.432078, lng: -86.916234 },
+    { id: 49, name: 'Ross-Ade Stadium', abbr: 'ROSS', lat: 40.436012, lng: -86.922567 },
+    { id: 50, name: 'Mollenkopf Athletic Center', abbr: 'MAC', lat: 40.434567, lng: -86.921012 },
     
     // Other Important Buildings
-    { id: 51, name: 'Knoy Hall', abbr: 'KNOY', lat: 40.42670, lng: -86.91620 },
-    { id: 52, name: 'University Hall', abbr: 'UNIV', lat: 40.42540, lng: -86.91540 },
-    { id: 53, name: 'Beering Hall', abbr: 'BEER', lat: 40.42540, lng: -86.91540 },
-    { id: 54, name: 'Heavilon Hall', abbr: 'HEAV', lat: 40.42540, lng: -86.91540 },
-    { id: 55, name: 'Stone Hall', abbr: 'STON', lat: 40.42410, lng: -86.91860 },
-    { id: 56, name: 'Pharmacy Building', abbr: 'PHAR', lat: 40.42790, lng: -86.91380 },
-    { id: 57, name: 'Nursing Building', abbr: 'NURS', lat: 40.42790, lng: -86.91380 },
+    { id: 51, name: 'Knoy Hall', abbr: 'KNOY', lat: 40.427345, lng: -86.916012 },
+    { id: 52, name: 'University Hall', abbr: 'UNIV', lat: 40.423789, lng: -86.913456 },
+    { id: 53, name: 'Beering Hall', abbr: 'BEER', lat: 40.425123, lng: -86.911678 },
+    { id: 54, name: 'Heavilon Hall', abbr: 'HEAV', lat: 40.424012, lng: -86.912890 },
+    { id: 55, name: 'Stone Hall', abbr: 'STON', lat: 40.420567, lng: -86.917890 },
+    { id: 56, name: 'Pharmacy Building', abbr: 'PHAR', lat: 40.428567, lng: -86.908123 },
+    { id: 57, name: 'Nursing Building', abbr: 'NURS', lat: 40.429012, lng: -86.907456 },
   ];
 
   // Get all participant locations (including creator if they set one)

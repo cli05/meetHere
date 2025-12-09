@@ -23,7 +23,15 @@ const participantSchema = new mongoose.Schema({
       lng: Number,
     },
   },
+  notes: {
+    type: String,
+    default: '',
+  },
   submittedAt: {
+    type: Date,
+    default: Date.now,
+  },
+  updatedAt: {
     type: Date,
     default: Date.now,
   },

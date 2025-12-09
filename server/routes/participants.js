@@ -3,10 +3,31 @@ const router = express.Router();
 const Participant = require('../models/Participant');
 const Meeting = require('../models/Meeting');
 
+// Check if participant exists by name for a meeting
+router.get('/check/:meetingId/:name', async (req, res) => {
+  try {
+    const { meetingId, name } = req.params;
+    
+    // Find participant by meeting ID and name (case-insensitive)
+    const participant = await Participant.findOne({
+      meetingId,
+      name: { $regex: new RegExp(`^${name.trim()}$`, 'i') }
+    });
+    
+    if (participant) {
+      res.json({ success: true, exists: true, participant });
+    } else {
+      res.json({ success: true, exists: false });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Add participant to a meeting
 router.post('/', async (req, res) => {
   try {
-    const { meetingId, name, availability, location } = req.body;
+    const { meetingId, name, availability, location, notes } = req.body;
 
     // Verify meeting exists
     const meeting = await Meeting.findById(meetingId);
@@ -19,6 +40,7 @@ router.post('/', async (req, res) => {
       name,
       availability,
       location,
+      notes: notes || '',
     });
 
     await participant.save();
@@ -61,11 +83,17 @@ router.get('/:id', async (req, res) => {
 // Update participant availability
 router.put('/:id', async (req, res) => {
   try {
-    const { availability, location } = req.body;
+    const { availability, location, notes } = req.body;
+
+    const updateData = {};
+    if (availability !== undefined) updateData.availability = availability;
+    if (location !== undefined) updateData.location = location;
+    if (notes !== undefined) updateData.notes = notes;
+    updateData.updatedAt = Date.now();
 
     const participant = await Participant.findByIdAndUpdate(
       req.params.id,
-      { availability, location },
+      updateData,
       { new: true }
     );
 
