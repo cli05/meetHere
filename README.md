@@ -41,7 +41,7 @@ MeetHere merges two workflows into one intuitive tool:
   - Secondary: Grey (#86868b)
   - Light mode with clean, minimal interface
 
-- ** Event System
+- **Event System
   - Create events with dynamic links  
   - Participants join instantly (no login required)  
   - Automatic aggregation of time + location data
