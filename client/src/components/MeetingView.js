@@ -19,6 +19,12 @@ const MeetingView = () => {
   const [optimalLocations, setOptimalLocations] = useState([]);
   const [locationTab, setLocationTab] = useState('participants');
   const [selectedLocationDetail, setSelectedLocationDetail] = useState(null);
+  
+  // New state for edit functionality
+  const [existingParticipant, setExistingParticipant] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [checkingName, setCheckingName] = useState(false);
+  const [nameConfirmed, setNameConfirmed] = useState(false);
 
   // Fetch real meeting data on mount
   useEffect(() => {
@@ -68,6 +74,72 @@ const MeetingView = () => {
     }
   };
 
+  // Check if participant already exists by name
+  const checkExistingParticipant = async () => {
+    if (!userName.trim() || !meeting) return;
+    
+    setCheckingName(true);
+    setError('');
+    
+    try {
+      const response = await axios.get(`/api/participants/check/${meeting._id}/${encodeURIComponent(userName.trim())}`);
+      
+      if (response.data.success && response.data.exists) {
+        setExistingParticipant(response.data.participant);
+        // Pre-fill the form with existing data
+        const participant = response.data.participant;
+        
+        // Convert availability to the format used by AvailabilityGrid
+        if (participant.availability && participant.availability.length > 0) {
+          setUserAvailability(participant.availability);
+        }
+        
+        // Set location if exists
+        if (participant.location) {
+          setUserLocation({
+            name: participant.location.buildingName,
+            abbr: participant.location.buildingAbbr,
+            lat: participant.location.coordinates?.lat,
+            lng: participant.location.coordinates?.lng
+          });
+        }
+        
+        setNameConfirmed(true);
+      } else {
+        setExistingParticipant(null);
+        setNameConfirmed(true);
+      }
+    } catch (error) {
+      console.error('Error checking participant:', error);
+      setNameConfirmed(true);
+    } finally {
+      setCheckingName(false);
+    }
+  };
+
+  // Handle name confirmation
+  const handleConfirmName = () => {
+    if (!userName.trim()) {
+      setError('Please enter your name');
+      return;
+    }
+    checkExistingParticipant();
+  };
+
+  // Reset to change name
+  const handleChangeName = () => {
+    setNameConfirmed(false);
+    setExistingParticipant(null);
+    setIsEditing(false);
+    setUserAvailability([]);
+    setUserLocation(null);
+  };
+
+  // Enter edit mode for existing participant
+  const handleEditSubmission = () => {
+    setIsEditing(true);
+  };
+
   const handleAvailabilityUpdate = (data) => {
     // Convert selectedSlots array to availability format
     const availability = data.selectedSlots.map(slot => {
@@ -97,22 +169,33 @@ const MeetingView = () => {
       setSubmitting(true);
       setError('');
 
-      // Submit participant data
-      const participantData = {
-        meetingId: meeting._id,
-        name: userName.trim(),
-        availability: userAvailability,
-        location: {
-          buildingName: userLocation.name,
-          buildingAbbr: userLocation.abbr,
-          coordinates: {
-            lat: userLocation.lat,
-            lng: userLocation.lng
-          }
+      const locationData = {
+        buildingName: userLocation.name,
+        buildingAbbr: userLocation.abbr,
+        coordinates: {
+          lat: userLocation.lat,
+          lng: userLocation.lng
         }
       };
 
-      const response = await axios.post('/api/participants', participantData);
+      let response;
+
+      if (existingParticipant && isEditing) {
+        // Update existing participant
+        response = await axios.put(`/api/participants/${existingParticipant._id}`, {
+          availability: userAvailability,
+          location: locationData
+        });
+      } else {
+        // Create new participant
+        const participantData = {
+          meetingId: meeting._id,
+          name: userName.trim(),
+          availability: userAvailability,
+          location: locationData
+        };
+        response = await axios.post('/api/participants', participantData);
+      }
 
       if (response.data.success) {
         // Trigger recalculation of optimal time/location
@@ -122,6 +205,7 @@ const MeetingView = () => {
         await fetchMeeting();
 
         setHasSubmitted(true);
+        setIsEditing(false);
       }
     } catch (err) {
       console.error('Error submitting availability:', err);
@@ -333,65 +417,189 @@ const MeetingView = () => {
 
           {!hasSubmitted ? (
             <>
+              {/* Step 1: Name Entry/Confirmation */}
               <div className="section">
                 <h2 className="section-header">Your Information</h2>
                 <div className="user-form">
                   <div className="form-group">
                     <label>Your Name *</label>
-                    <input
-                      type="text"
-                      placeholder="Enter your name"
-                      value={userName}
-                      onChange={(e) => setUserName(e.target.value)}
-                    />
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        placeholder="Enter your name"
+                        value={userName}
+                        onChange={(e) => {
+                          setUserName(e.target.value);
+                          if (nameConfirmed) {
+                            // Reset if name changes after confirmation
+                            setNameConfirmed(false);
+                            setExistingParticipant(null);
+                          }
+                        }}
+                        disabled={nameConfirmed}
+                        style={{ flex: 1 }}
+                      />
+                      {!nameConfirmed ? (
+                        <button
+                          className="btn btn-primary"
+                          onClick={handleConfirmName}
+                          disabled={!userName.trim() || checkingName}
+                        >
+                          {checkingName ? 'Checking...' : 'Continue'}
+                        </button>
+                      ) : (
+                        <button
+                          className="btn btn-secondary"
+                          onClick={handleChangeName}
+                        >
+                          Change
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="section">
-                <h2 className="section-header">Mark Your Availability</h2>
-                <p style={{ marginBottom: '16px', color: '#666' }}>
-                  Select the times when you're available to meet
-                </p>
-                <AvailabilityGrid
-                  isCreator={false}
-                  availableDays={meeting.availableDays}
-                  timeRange={meeting.timeRange}
-                  onUpdate={handleAvailabilityUpdate}
-                />
-                {userAvailability.length > 0 && (
-                  <p style={{ marginTop: '12px', color: 'var(--accent-blue)' }}>
-                    ✓ {userAvailability.length} time slots selected
-                  </p>
-                )}
-              </div>
+              {/* Show existing participant's submission */}
+              {nameConfirmed && existingParticipant && !isEditing && (
+                <div className="section">
+                  <div className="existing-submission-card" style={{
+                    background: '#f0f9ff',
+                    border: '1px solid #0071e3',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    marginBottom: '20px'
+                  }}>
+                    <h3 style={{ marginTop: 0, color: '#0071e3' }}>
+                      ✓ You've already submitted your availability!
+                    </h3>
+                    <div style={{ marginTop: '16px' }}>
+                      <p><strong>Availability:</strong> {existingParticipant.availability?.length || 0} time slots selected</p>
+                      <p><strong>Location:</strong> {existingParticipant.location?.buildingName || existingParticipant.location?.buildingAbbr || 'Not specified'}</p>
+                    </div>
+                    <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
+                      <button
+                        className="btn btn-primary"
+                        onClick={handleEditSubmission}
+                      >
+                        ✏️ Edit My Submission
+                      </button>
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => setHasSubmitted(true)}
+                      >
+                        View Results
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-              <div className="section">
-                <h2 className="section-header">Your Starting Location</h2>
-                <p style={{ marginBottom: '16px', color: '#666' }}>
-                  Where will you be coming from?
-                </p>
-                <LocationMap
-                  onLocationSelect={(location) => setUserLocation(location)}
-                />
-              </div>
+              {/* Show form for new participants or editing existing ones */}
+              {nameConfirmed && (!existingParticipant || isEditing) && (
+                <>
+                  {isEditing && (
+                    <div style={{
+                      background: '#fff3cd',
+                      border: '1px solid #ffc107',
+                      borderRadius: '8px',
+                      padding: '12px',
+                      marginBottom: '20px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px'
+                    }}>
+                      <span>✏️</span>
+                      <span>You're editing your existing submission. Changes will replace your previous response.</span>
+                    </div>
+                  )}
 
-              <div className="submit-section">
-                <button
-                  className="btn btn-primary btn-large"
-                  onClick={handleSubmit}
-                  disabled={!userName.trim() || !userLocation || userAvailability.length === 0 || submitting}
-                >
-                  {submitting ? 'Submitting...' : 'Submit Availability'}
-                </button>
-              </div>
+                  <div className="section">
+                    <h2 className="section-header">Mark Your Availability</h2>
+                    <p style={{ marginBottom: '16px', color: '#666' }}>
+                      Select the times when you're available to meet
+                    </p>
+                    <AvailabilityGrid
+                      isCreator={false}
+                      availableDays={meeting.availableDays}
+                      timeRange={meeting.timeRange}
+                      onUpdate={handleAvailabilityUpdate}
+                      initialSelection={existingParticipant?.availability || []}
+                    />
+                    {userAvailability.length > 0 && (
+                      <p style={{ marginTop: '12px', color: 'var(--accent-blue)' }}>
+                        ✓ {userAvailability.length} time slots selected
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="section">
+                    <h2 className="section-header">Your Starting Location</h2>
+                    <p style={{ marginBottom: '16px', color: '#666' }}>
+                      Where will you be coming from?
+                    </p>
+                    <LocationMap
+                      onLocationSelect={(location) => setUserLocation(location)}
+                      initialLocation={userLocation}
+                    />
+                    {userLocation && (
+                      <p style={{ marginTop: '12px', color: 'var(--accent-blue)' }}>
+                        ✓ Location selected: {userLocation.name || `${userLocation.lat?.toFixed(4)}, ${userLocation.lng?.toFixed(4)}`}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="submit-section">
+                    {isEditing && (
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => {
+                          setIsEditing(false);
+                          // Reset to original values
+                          if (existingParticipant) {
+                            setUserAvailability(existingParticipant.availability || []);
+                            if (existingParticipant.location) {
+                              setUserLocation({
+                                name: existingParticipant.location.buildingName,
+                                abbr: existingParticipant.location.buildingAbbr,
+                                lat: existingParticipant.location.coordinates?.lat,
+                                lng: existingParticipant.location.coordinates?.lng
+                              });
+                            }
+                          }
+                        }}
+                        style={{ marginRight: '10px' }}
+                      >
+                        Cancel
+                      </button>
+                    )}
+                    <button
+                      className="btn btn-primary btn-large"
+                      onClick={handleSubmit}
+                      disabled={!userName.trim() || !userLocation || userAvailability.length === 0 || submitting}
+                    >
+                      {submitting ? 'Saving...' : (isEditing ? 'Update Availability' : 'Submit Availability')}
+                    </button>
+                  </div>
+                </>
+              )}
             </>
           ) : (
             <div className="results-section">
               <div className="success-message">
                 <div className="success-icon">✓</div>
                 <h2>Thank you, {userName}!</h2>
-                <p>Your availability has been recorded.</p>
+                <p>{isEditing || existingParticipant ? 'Your availability has been updated.' : 'Your availability has been recorded.'}</p>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setHasSubmitted(false);
+                    setIsEditing(true);
+                  }}
+                  style={{ marginTop: '16px' }}
+                >
+                  ✏️ Edit My Submission
+                </button>
               </div>
 
               <div className="section">

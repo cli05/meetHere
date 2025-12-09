@@ -1,17 +1,34 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import './AvailabilityGrid.css';
 
 const AvailabilityGrid = ({
   isCreator = false,
   onUpdate,
   availableDays = [],  // Array of date strings from meeting (e.g., ["2025-12-15", "2025-12-18"])
-  timeRange = { startTime: '09:00', endTime: '21:00' }  // Meeting's time range
+  timeRange = { startTime: '09:00', endTime: '21:00' },  // Meeting's time range
+  initialSelection = []  // Array of {dayIndex, timeIndex} objects for pre-populating the grid
 }) => {
   const [selectedSlots, setSelectedSlots] = useState(new Set());
   const [isDragging, setIsDragging] = useState(false);
   const [isPaintMode, setIsPaintMode] = useState(false);
   const [dragMode, setDragMode] = useState(null); // 'select' or 'deselect'
   const gridRef = useRef(null);
+
+  // Helper function moved up before useEffect that uses it
+  const getCellId = useCallback((dayIndex, timeIndex) => `${dayIndex}-${timeIndex}`, []);
+
+  // Initialize selectedSlots from initialSelection prop
+  useEffect(() => {
+    if (initialSelection && initialSelection.length > 0) {
+      const initialSet = new Set(
+        initialSelection.map(slot => getCellId(slot.dayIndex, slot.timeIndex))
+      );
+      setSelectedSlots(initialSet);
+    } else {
+      // Clear selection if initialSelection is empty (reset case)
+      setSelectedSlots(new Set());
+    }
+  }, [initialSelection, getCellId]);
 
   // Helper function to generate time slots from time range
   const generateTimeSlots = () => {
@@ -69,8 +86,6 @@ const AvailabilityGrid = ({
         }
         return fallbackDays;
       })();
-
-  const getCellId = (dayIndex, timeIndex) => `${dayIndex}-${timeIndex}`;
 
   const handleMouseDown = (dayIndex, timeIndex) => {
     if (isPaintMode) return;

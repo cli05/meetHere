@@ -679,3 +679,70 @@
 .location-stats-detail strong {
   color: var(--white);
 }
+
+/* Edit mode styles */
+.existing-submission-card {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.existing-submission-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.existing-submission-card p {
+  color: #333;
+  margin: 8px 0;
+}
+
+.edit-warning-banner {
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Name confirmation input group */
+.user-form .form-group input:disabled {
+  background-color: #2a2a2e;
+  color: #b0b0b0;
+  cursor: not-allowed;
+}
+
+.user-form .form-group > div {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.user-form .form-group > div input {
+  flex: 1;
+}
+
+/* Submit section with multiple buttons */
+.submit-section {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}

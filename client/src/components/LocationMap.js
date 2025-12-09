@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
 import './LocationMap.css';
 
@@ -31,12 +31,19 @@ const mapOptions = {
   ],
 };
 
-const LocationMap = ({ onLocationSelect }) => {
-  const [selectedLocation, setSelectedLocation] = useState(null);
+const LocationMap = ({ onLocationSelect, initialLocation = null }) => {
+  const [selectedLocation, setSelectedLocation] = useState(initialLocation);
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
   const [map, setMap] = useState(null);
+
+  // Initialize with initialLocation if provided
+  useEffect(() => {
+    if (initialLocation) {
+      setSelectedLocation(initialLocation);
+    }
+  }, [initialLocation]);
 
   // Load Google Maps
   const { isLoaded, loadError } = useJsApiLoader({
