@@ -6,6 +6,11 @@ const participantSchema = new mongoose.Schema({
     ref: 'Meeting',
     required: true,
   },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null, // null for anonymous participants (via share link)
+  },
   name: {
     type: String,
     required: true,

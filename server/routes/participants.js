@@ -2,8 +2,30 @@ const express = require('express');
 const router = express.Router();
 const Participant = require('../models/Participant');
 const Meeting = require('../models/Meeting');
+const { protect, optionalAuth } = require('../middleware/auth');
 
-// Check if participant exists by name for a meeting
+// Check if logged-in user has a participant entry for a meeting
+router.get('/my-entry/:meetingId', protect, async (req, res) => {
+  try {
+    const { meetingId } = req.params;
+    
+    // Find participant by meeting ID and user ID
+    const participant = await Participant.findOne({
+      meetingId,
+      userId: req.user._id
+    });
+    
+    if (participant) {
+      res.json({ success: true, exists: true, participant });
+    } else {
+      res.json({ success: true, exists: false });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Check if participant exists by name for a meeting (for anonymous users)
 router.get('/check/:meetingId/:name', async (req, res) => {
   try {
     const { meetingId, name } = req.params;
@@ -25,7 +47,7 @@ router.get('/check/:meetingId/:name', async (req, res) => {
 });
 
 // Add participant to a meeting
-router.post('/', async (req, res) => {
+router.post('/', optionalAuth, async (req, res) => {
   try {
     const { meetingId, name, availability, location, notes } = req.body;
 
@@ -35,9 +57,25 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Meeting not found' });
     }
 
+    // If user is logged in, check if they already have an entry
+    if (req.user) {
+      const existingEntry = await Participant.findOne({
+        meetingId,
+        userId: req.user._id
+      });
+      
+      if (existingEntry) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'You have already submitted your availability for this meeting' 
+        });
+      }
+    }
+
     const participant = new Participant({
       meetingId,
-      name,
+      userId: req.user ? req.user._id : null,
+      name: req.user ? req.user.name : name,
       availability,
       location,
       notes: notes || '',
@@ -80,10 +118,27 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Update participant availability
-router.put('/:id', async (req, res) => {
+// Update participant availability (requires auth for user-linked participants)
+router.put('/:id', optionalAuth, async (req, res) => {
   try {
     const { availability, location, notes } = req.body;
+
+    // First, find the participant to check ownership
+    const existingParticipant = await Participant.findById(req.params.id);
+    
+    if (!existingParticipant) {
+      return res.status(404).json({ success: false, error: 'Participant not found' });
+    }
+
+    // If participant is linked to a user, verify ownership
+    if (existingParticipant.userId) {
+      if (!req.user) {
+        return res.status(401).json({ success: false, error: 'Authentication required' });
+      }
+      if (existingParticipant.userId.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ success: false, error: 'You can only edit your own submission' });
+      }
+    }
 
     const updateData = {};
     if (availability !== undefined) updateData.availability = availability;
@@ -96,10 +151,6 @@ router.put('/:id', async (req, res) => {
       updateData,
       { new: true }
     );
-
-    if (!participant) {
-      return res.status(404).json({ success: false, error: 'Participant not found' });
-    }
 
     res.json({ success: true, participant });
   } catch (error) {

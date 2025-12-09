@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from '../utils/axios';
+import { useAuth } from '../context/AuthContext';
 import './MeetingView.css';
 import AvailabilityGrid from './AvailabilityGrid';
 import LocationMap from './LocationMap';
@@ -8,6 +9,7 @@ import LocationMap from './LocationMap';
 const MeetingView = () => {
   const { id } = useParams(); // This is the shareLink
   const navigate = useNavigate();
+  const { user } = useAuth(); // Get logged-in user
   const [meeting, setMeeting] = useState(null);
   const [userName, setUserName] = useState('');
   const [userAvailability, setUserAvailability] = useState([]);
@@ -30,6 +32,57 @@ const MeetingView = () => {
   useEffect(() => {
     fetchMeeting();
   }, [id]);
+
+  // If user is logged in, auto-check for their existing entry
+  useEffect(() => {
+    if (user && meeting) {
+      checkUserEntry();
+    }
+  }, [user, meeting]);
+
+  // Check if logged-in user already has an entry
+  const checkUserEntry = async () => {
+    if (!user || !meeting) return;
+    
+    setCheckingName(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`/api/participants/my-entry/${meeting._id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.data.success && response.data.exists) {
+        setExistingParticipant(response.data.participant);
+        setUserName(user.name);
+        
+        // Pre-fill the form with existing data
+        const participant = response.data.participant;
+        if (participant.availability && participant.availability.length > 0) {
+          setUserAvailability(participant.availability);
+        }
+        if (participant.location) {
+          setUserLocation({
+            name: participant.location.buildingName,
+            abbr: participant.location.buildingAbbr,
+            lat: participant.location.coordinates?.lat,
+            lng: participant.location.coordinates?.lng
+          });
+        }
+        setNameConfirmed(true);
+      } else {
+        // User hasn't submitted yet, pre-fill their name
+        setUserName(user.name);
+        setNameConfirmed(true);
+      }
+    } catch (error) {
+      console.error('Error checking user entry:', error);
+      // Still set the name if logged in
+      setUserName(user.name);
+      setNameConfirmed(true);
+    } finally {
+      setCheckingName(false);
+    }
+  };
 
   const fetchMeeting = async () => {
     try {
@@ -126,8 +179,9 @@ const MeetingView = () => {
     checkExistingParticipant();
   };
 
-  // Reset to change name
+  // Reset to change name (only for non-logged-in users)
   const handleChangeName = () => {
+    if (user) return; // Logged-in users can't change their name
     setNameConfirmed(false);
     setExistingParticipant(null);
     setIsEditing(false);
@@ -178,6 +232,10 @@ const MeetingView = () => {
         }
       };
 
+      // Get auth token if logged in
+      const token = localStorage.getItem('token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
       let response;
 
       if (existingParticipant && isEditing) {
@@ -185,7 +243,7 @@ const MeetingView = () => {
         response = await axios.put(`/api/participants/${existingParticipant._id}`, {
           availability: userAvailability,
           location: locationData
-        });
+        }, { headers });
       } else {
         // Create new participant
         const participantData = {
@@ -194,7 +252,7 @@ const MeetingView = () => {
           availability: userAvailability,
           location: locationData
         };
-        response = await axios.post('/api/participants', participantData);
+        response = await axios.post('/api/participants', participantData, { headers });
       }
 
       if (response.data.success) {
@@ -423,39 +481,66 @@ const MeetingView = () => {
                 <div className="user-form">
                   <div className="form-group">
                     <label>Your Name *</label>
-                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                      <input
-                        type="text"
-                        placeholder="Enter your name"
-                        value={userName}
-                        onChange={(e) => {
-                          setUserName(e.target.value);
-                          if (nameConfirmed) {
-                            // Reset if name changes after confirmation
-                            setNameConfirmed(false);
-                            setExistingParticipant(null);
-                          }
-                        }}
-                        disabled={nameConfirmed}
-                        style={{ flex: 1 }}
-                      />
-                      {!nameConfirmed ? (
-                        <button
-                          className="btn btn-primary"
-                          onClick={handleConfirmName}
-                          disabled={!userName.trim() || checkingName}
-                        >
-                          {checkingName ? 'Checking...' : 'Continue'}
-                        </button>
-                      ) : (
-                        <button
-                          className="btn btn-secondary"
-                          onClick={handleChangeName}
-                        >
-                          Change
-                        </button>
-                      )}
-                    </div>
+                    {user ? (
+                      // Logged-in user: show name as read-only
+                      <div style={{ 
+                        display: 'flex', 
+                        gap: '10px', 
+                        alignItems: 'center',
+                        padding: '12px',
+                        background: '#f0f9ff',
+                        borderRadius: '8px',
+                        border: '1px solid #0071e3'
+                      }}>
+                        <span style={{ flex: 1, fontWeight: '500', color: '#333' }}>
+                          {userName}
+                        </span>
+                        <span style={{ 
+                          fontSize: '12px', 
+                          color: '#0071e3',
+                          background: '#e0f2fe',
+                          padding: '4px 8px',
+                          borderRadius: '4px'
+                        }}>
+                          ✓ Logged in
+                        </span>
+                      </div>
+                    ) : (
+                      // Guest user: allow name input
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        <input
+                          type="text"
+                          placeholder="Enter your name"
+                          value={userName}
+                          onChange={(e) => {
+                            setUserName(e.target.value);
+                            if (nameConfirmed) {
+                              // Reset if name changes after confirmation
+                              setNameConfirmed(false);
+                              setExistingParticipant(null);
+                            }
+                          }}
+                          disabled={nameConfirmed}
+                          style={{ flex: 1 }}
+                        />
+                        {!nameConfirmed ? (
+                          <button
+                            className="btn btn-primary"
+                            onClick={handleConfirmName}
+                            disabled={!userName.trim() || checkingName}
+                          >
+                            {checkingName ? 'Checking...' : 'Continue'}
+                          </button>
+                        ) : (
+                          <button
+                            className="btn btn-secondary"
+                            onClick={handleChangeName}
+                          >
+                            Change
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
