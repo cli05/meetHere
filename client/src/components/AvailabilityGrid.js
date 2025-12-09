@@ -185,46 +185,38 @@ const AvailabilityGrid = ({
         className="availability-grid"
         ref={gridRef}
         onMouseLeave={handleMouseUp}
+        style={{ gridTemplateColumns: `80px repeat(${days.length}, minmax(120px, 1fr))` }}
       >
-        <div 
-          className="grid-header" 
-          style={{ gridTemplateColumns: `80px repeat(${days.length}, minmax(80px, 1fr))` }}
-        >
-          <div className="grid-cell header-cell time-header">Time</div>
-          {days.map((day, index) => (
-            <div key={index} className="grid-cell header-cell">
-              <div className="day-name">{day.name}</div> 
-              <div className="day-date">{day.date}</div>
-            </div>
-          ))}
-        </div>
+        {/* Header Row */}
+        <div className="grid-cell header-cell time-header">Time</div>
+        {days.map((day, index) => (
+          <div key={`header-${index}`} className="grid-cell header-cell">
+            <div className="day-name">{day.name.substring(0, 3)}</div>
+            <div className="day-date">{day.date}</div>
+          </div>
+        ))}
 
-        <div className="grid-body">
-          {timeSlots.map((time, timeIndex) => (
-            <div 
-              key={timeIndex} 
-              className="grid-row"
-              style={{ gridTemplateColumns: `80px repeat(${days.length}, minmax(80px, 1fr))` }}
-            >
-              <div className="grid-cell time-cell">{time}</div>
-              {days.map((day, dayIndex) => (
-                <div
-                  key={dayIndex}
-                  className={`grid-cell selectable-cell ${
-                    selectedSlots.has(getCellId(dayIndex, timeIndex)) ? 'selected' : ''
-                  }`}
-                  style={{
-                    backgroundColor: 'var(--accent-blue)',
-                    opacity: getOpacity(dayIndex, timeIndex),
-                  }}
-                  onMouseDown={() => handleMouseDown(dayIndex, timeIndex)}
-                  onMouseEnter={() => handleMouseEnter(dayIndex, timeIndex)}
-                  onTouchStart={() => handleTouchStart(dayIndex, timeIndex)}
-                />
-              ))}
-            </div>
-          ))}
-        </div>
+        {/* Time Slot Rows */}
+        {timeSlots.map((time, timeIndex) => (
+          <React.Fragment key={timeIndex}>
+            <div className="grid-cell time-cell">{time}</div>
+            {days.map((day, dayIndex) => (
+              <div
+                key={`${dayIndex}-${timeIndex}`}
+                className={`grid-cell selectable-cell ${
+                  selectedSlots.has(getCellId(dayIndex, timeIndex)) ? 'selected' : ''
+                }`}
+                style={{
+                  backgroundColor: 'var(--accent-blue)',
+                  opacity: getOpacity(dayIndex, timeIndex),
+                }}
+                onMouseDown={() => handleMouseDown(dayIndex, timeIndex)}
+                onMouseEnter={() => handleMouseEnter(dayIndex, timeIndex)}
+                onTouchStart={() => handleTouchStart(dayIndex, timeIndex)}
+              />
+            ))}
+          </React.Fragment>
+        ))}
       </div>
 
       <div className="grid-legend">
