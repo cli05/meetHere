@@ -49,8 +49,8 @@ MeetHere merges two workflows into one intuitive tool:
 - **Mobile Responsive**: Works seamlessly on all devices
 
 ![Landing Page](./images/login.png)
-![Availability Grid](./images/showmeetings.png)
 ![Meeting Map](./images/googlemaps.png)
+![Availability Grid](./images/showmeetings.png)
 
 ## 🛠️ Tech Stack
 
