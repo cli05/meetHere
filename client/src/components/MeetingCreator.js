@@ -346,7 +346,7 @@ const MeetingCreator = () => {
                       }
                     })}
                   />
-                  <span>Enable location-based meeting suggestions</span>
+                  <span style={{ marginLeft: '8px', position: 'relative', top: '-4px' }}>Enable location-based meeting suggestions</span>
                 </label>
               </div>
 
