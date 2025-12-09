@@ -69,6 +69,8 @@ const MeetingView = () => {
           });
         }
         setNameConfirmed(true);
+        // User already submitted - show results view by default
+        setHasSubmitted(true);
       } else {
         // User hasn't submitted yet, pre-fill their name
         setUserName(user.name);
