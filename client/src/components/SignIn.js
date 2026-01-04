@@ -42,8 +42,7 @@ const SignIn = () => {
         <div className="auth-header">
           <h1 className="auth-logo">
             <Link to="/">
-              <span className="logo-meet">meet</span>
-              <span className="logo-here">Here</span>
+              <img src="/meetHere_logo_withText.png" alt="meetHere" className="logo-full" />
             </Link>
           </h1>
           <h2>Welcome Back</h2>

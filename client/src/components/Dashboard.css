@@ -1,10 +1,10 @@
 .dashboard {
   min-height: 100vh;
-  background-color: #f5f5f7;
+  background-color: #F4F7F6;
 }
 
 .dashboard-nav {
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(255, 255, 255, 0.9);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   padding: 12px 0;
@@ -26,6 +26,11 @@
   cursor: pointer;
   display: flex;
   align-items: center;
+}
+
+.dashboard-nav .logo-full {
+  height: 56px;
+  width: auto;
 }
 
 .dashboard-nav .logo-icon {

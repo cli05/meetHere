@@ -6,14 +6,20 @@
 .creator-header {
   background-color: white;
   padding: 20px 0;
-  border-bottom: 2px solid #1d1d1f;
+  border-bottom: 2px solid var(--accent-blue);
 }
 
 .creator-logo {
   font-size: 28px;
   font-weight: 900;
   cursor: pointer;
-  display: inline-block;
+  display: flex;
+  align-items: center;
+}
+
+.creator-logo .logo-full {
+  height: 56px;
+  width: auto;
 }
 
 .creator-content {
@@ -41,26 +47,26 @@
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background-color: var(--charcoal);
+  background-color: #E8EDEC;
   color: #666;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 20px;
   font-weight: 700;
-  border: 2px solid #444;
+  border: 2px solid var(--border-color);
   transition: all 0.3s ease;
 }
 
 .progress-step.active .step-circle {
   background-color: var(--accent-blue);
-  color: var(--text-primary);
+  color: #ffffff;
   border-color: var(--accent-blue);
 }
 
 .progress-step span {
   font-size: 14px;
-  color: #888;
+  color: var(--text-secondary);
   font-weight: 600;
 }
 
@@ -71,27 +77,28 @@
 .progress-line {
   width: 100px;
   height: 2px;
-  background-color: #444;
+  background-color: var(--border-color);
   margin: 0 20px;
 }
 
 .creator-step {
   max-width: 800px;
   margin: 0 auto;
-  background-color: var(--charcoal);
+  background-color: #ffffff;
   padding: 40px;
   border-radius: 8px;
-  border: 1px solid rgba(206, 184, 136, 0.1);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .creator-step h2 {
   font-size: 32px;
   margin-bottom: 10px;
-  color: var(--white);
+  color: var(--text-primary);
 }
 
 .step-description {
-  color: #b0b0b0;
+  color: var(--text-secondary);
   margin-bottom: 30px;
   line-height: 1.6;
 }
@@ -112,10 +119,10 @@
 .form-group textarea {
   width: 100%;
   padding: 12px 16px;
-  background-color: var(--dark-grey);
-  border: 1px solid #444;
+  background-color: #F4F7F6;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
-  color: var(--white);
+  color: var(--text-primary);
   font-size: 16px;
   font-family: inherit;
   transition: border-color 0.3s ease;
@@ -129,7 +136,7 @@
 
 .form-group input::placeholder,
 .form-group textarea::placeholder {
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .button-group {
@@ -144,7 +151,7 @@
 }
 
 .info-box {
-  background-color: var(--dark-grey);
+  background-color: #F4F7F6;
   padding: 24px;
   border-radius: 6px;
   border-left: 4px solid var(--accent-blue);
@@ -162,7 +169,7 @@
 }
 
 .info-box li {
-  color: #b0b0b0;
+  color: var(--text-secondary);
   margin-bottom: 10px;
   padding-left: 24px;
   position: relative;
@@ -179,8 +186,8 @@
 .location-selected-badge {
   margin-top: 15px;
   padding: 12px 16px;
-  background-color: rgba(206, 184, 136, 0.1);
-  border: 1px solid var(--accent-blue);
+  background-color: rgba(160, 232, 216, 0.15);
+  border: 1px solid var(--accent-mint);
   border-radius: 6px;
   color: var(--accent-blue);
   font-weight: 600;
@@ -199,7 +206,7 @@
 
 .field-hint {
   font-size: 13px;
-  color: #888;
+  color: var(--text-secondary);
   margin-top: 6px;
 }
 
@@ -214,10 +221,10 @@
 .form-group select {
   width: 100%;
   padding: 12px 16px;
-  background-color: var(--dark-grey);
-  border: 1px solid #444;
+  background-color: #F4F7F6;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
-  color: var(--white);
+  color: var(--text-primary);
   font-size: 16px;
   font-family: inherit;
   transition: border-color 0.3s ease;
@@ -234,7 +241,7 @@
   align-items: center;
   gap: 12px;
   cursor: pointer;
-  color: var(--white);
+  color: var(--text-primary);
   font-size: 16px;
 }
 
@@ -257,7 +264,7 @@
 .calendar-month {
   font-size: 18px;
   font-weight: 600;
-  color: var(--white);
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -286,8 +293,8 @@
 .calendar-nav-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
-  border-color: #666;
-  color: #666;
+  border-color: var(--border-color);
+  color: var(--text-secondary);
 }
 
 .calendar-nav-btn:disabled:hover {
@@ -329,12 +336,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--dark-grey);
-  border: 2px solid #444;
+  background-color: #F4F7F6;
+  border: 2px solid var(--border-color);
   border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
-  color: var(--white);
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
@@ -346,7 +353,7 @@
 }
 
 .calendar-day.selected {
-  background-color: rgba(206, 184, 136, 0.2);
+  background-color: rgba(160, 232, 216, 0.2);
   border-color: var(--accent-blue);
   color: var(--accent-blue);
 }
@@ -388,21 +395,21 @@
 .success-icon {
   width: 80px;
   height: 80px;
-  background-color: rgba(34, 197, 94, 0.2);
-  border: 3px solid #22c55e;
+  background-color: rgba(160, 232, 216, 0.2);
+  border: 3px solid var(--accent-mint);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 48px;
-  color: #22c55e;
+  color: var(--accent-blue);
   margin: 0 auto 24px;
   font-weight: 700;
 }
 
 .success-message {
   font-size: 16px;
-  color: #b0b0b0;
+  color: var(--text-secondary);
   margin-bottom: 32px;
 }
 
@@ -411,8 +418,8 @@
 }
 
 .share-link-box {
-  background-color: rgba(206, 184, 136, 0.05);
-  border: 1px solid rgba(206, 184, 136, 0.2);
+  background-color: rgba(160, 232, 216, 0.05);
+  border: 1px solid rgba(160, 232, 216, 0.2);
   border-radius: 8px;
   padding: 24px;
   margin-bottom: 32px;
@@ -421,7 +428,7 @@
 .share-link-box label {
   display: block;
   font-size: 14px;
-  color: #888;
+  color: var(--text-secondary);
   margin-bottom: 12px;
   text-align: left;
 }
@@ -434,10 +441,10 @@
 .link-display input {
   flex: 1;
   padding: 12px 16px;
-  background-color: var(--dark-grey);
-  border: 1px solid #444;
+  background-color: #F4F7F6;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
-  color: var(--white);
+  color: var(--text-primary);
   font-size: 14px;
   font-family: 'Courier New', monospace;
 }
@@ -448,7 +455,7 @@
 }
 
 .meeting-details {
-  background-color: var(--dark-grey);
+  background-color: #F4F7F6;
   border-radius: 8px;
   padding: 24px;
   margin-bottom: 32px;
@@ -457,7 +464,7 @@
 
 .meeting-details h3 {
   font-size: 18px;
-  color: var(--white);
+  color: var(--text-primary);
   margin-bottom: 16px;
 }
 
@@ -465,7 +472,7 @@
   display: flex;
   justify-content: space-between;
   padding: 12px 0;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .detail-item:last-child {
@@ -474,12 +481,12 @@
 
 .detail-label {
   font-size: 14px;
-  color: #888;
+  color: var(--text-secondary);
 }
 
 .detail-value {
   font-size: 14px;
-  color: var(--white);
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -493,21 +500,21 @@
 .success-icon {
   width: 80px;
   height: 80px;
-  background-color: rgba(34, 197, 94, 0.2);
-  border: 3px solid #22c55e;
+  background-color: rgba(160, 232, 216, 0.2);
+  border: 3px solid var(--accent-mint);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 48px;
-  color: #22c55e;
+  color: var(--accent-blue);
   margin: 0 auto 24px;
   font-weight: 700;
 }
 
 .success-message {
   font-size: 16px;
-  color: #b0b0b0;
+  color: var(--text-secondary);
   margin-bottom: 32px;
 }
 
@@ -516,8 +523,8 @@
 }
 
 .share-link-box {
-  background-color: rgba(206, 184, 136, 0.05);
-  border: 1px solid rgba(206, 184, 136, 0.2);
+  background-color: rgba(160, 232, 216, 0.05);
+  border: 1px solid rgba(160, 232, 216, 0.2);
   border-radius: 8px;
   padding: 24px;
   margin-bottom: 32px;
@@ -526,7 +533,7 @@
 .share-link-box label {
   display: block;
   font-size: 14px;
-  color: #888;
+  color: var(--text-secondary);
   margin-bottom: 12px;
   text-align: left;
 }
@@ -539,10 +546,10 @@
 .link-display input {
   flex: 1;
   padding: 12px 16px;
-  background-color: var(--dark-grey);
-  border: 1px solid #444;
+  background-color: #F4F7F6;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
-  color: var(--white);
+  color: var(--text-primary);
   font-size: 14px;
   font-family: 'Courier New', monospace;
 }
@@ -553,7 +560,7 @@
 }
 
 .meeting-details {
-  background-color: var(--dark-grey);
+  background-color: #F4F7F6;
   border-radius: 8px;
   padding: 24px;
   margin-bottom: 32px;
@@ -562,7 +569,7 @@
 
 .meeting-details h3 {
   font-size: 18px;
-  color: var(--white);
+  color: var(--text-primary);
   margin-bottom: 16px;
 }
 
@@ -570,7 +577,7 @@
   display: flex;
   justify-content: space-between;
   padding: 12px 0;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .detail-item:last-child {
@@ -579,12 +586,12 @@
 
 .detail-label {
   font-size: 14px;
-  color: #888;
+  color: var(--text-secondary);
 }
 
 .detail-value {
   font-size: 14px;
-  color: var(--white);
+  color: var(--text-primary);
   font-weight: 600;
 }
 
