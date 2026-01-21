@@ -3,6 +3,30 @@ const router = express.Router();
 const Participant = require('../models/Participant');
 const Meeting = require('../models/Meeting');
 const { protect, optionalAuth } = require('../middleware/auth');
+const { toGeoJSON, fromGeoJSON } = require('../utils/geoUtils');
+
+// Helper function to convert participant location from GeoJSON to lat/lng for frontend
+function formatParticipantResponse(participant) {
+  const obj = participant.toObject ? participant.toObject() : { ...participant };
+  
+  if (obj.location?.location?.coordinates) {
+    obj.location.coordinates = fromGeoJSON(obj.location.location);
+  }
+  
+  return obj;
+}
+
+// Helper function to convert location from frontend to GeoJSON
+function convertLocationToGeoJSON(location) {
+  if (!location) return null;
+  
+  return {
+    buildingName: location.buildingName,
+    buildingAbbr: location.buildingAbbr,
+    location: location.coordinates ? 
+      toGeoJSON(location.coordinates.lat, location.coordinates.lng) : null,
+  };
+}
 
 // Check if logged-in user has a participant entry for a meeting
 router.get('/my-entry/:meetingId', protect, async (req, res) => {
@@ -16,7 +40,7 @@ router.get('/my-entry/:meetingId', protect, async (req, res) => {
     });
     
     if (participant) {
-      res.json({ success: true, exists: true, participant });
+      res.json({ success: true, exists: true, participant: formatParticipantResponse(participant) });
     } else {
       res.json({ success: true, exists: false });
     }
@@ -37,7 +61,7 @@ router.get('/check/:meetingId/:name', async (req, res) => {
     });
     
     if (participant) {
-      res.json({ success: true, exists: true, participant });
+      res.json({ success: true, exists: true, participant: formatParticipantResponse(participant) });
     } else {
       res.json({ success: true, exists: false });
     }
@@ -72,22 +96,26 @@ router.post('/', optionalAuth, async (req, res) => {
       }
     }
 
+    // Convert location to GeoJSON format
+    const geoLocation = convertLocationToGeoJSON(location);
+
     const participant = new Participant({
       meetingId,
       userId: req.user ? req.user._id : null,
       name: req.user ? req.user.name : name,
       availability,
-      location,
+      location: geoLocation,
       notes: notes || '',
     });
 
     await participant.save();
 
-    // Add participant to meeting
+    // Add participant to meeting and invalidate location cache
     meeting.participants.push(participant._id);
+    meeting.locationsParticipantCount = -1; // Force recalculation on next request
     await meeting.save();
 
-    res.status(201).json({ success: true, participant });
+    res.status(201).json({ success: true, participant: formatParticipantResponse(participant) });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -97,7 +125,7 @@ router.post('/', optionalAuth, async (req, res) => {
 router.get('/meeting/:meetingId', async (req, res) => {
   try {
     const participants = await Participant.find({ meetingId: req.params.meetingId });
-    res.json({ success: true, participants });
+    res.json({ success: true, participants: participants.map(formatParticipantResponse) });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -112,7 +140,7 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Participant not found' });
     }
 
-    res.json({ success: true, participant });
+    res.json({ success: true, participant: formatParticipantResponse(participant) });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -142,7 +170,7 @@ router.put('/:id', optionalAuth, async (req, res) => {
 
     const updateData = {};
     if (availability !== undefined) updateData.availability = availability;
-    if (location !== undefined) updateData.location = location;
+    if (location !== undefined) updateData.location = convertLocationToGeoJSON(location);
     if (notes !== undefined) updateData.notes = notes;
     updateData.updatedAt = Date.now();
 
@@ -152,7 +180,15 @@ router.put('/:id', optionalAuth, async (req, res) => {
       { new: true }
     );
 
-    res.json({ success: true, participant });
+    // If location was updated, invalidate the meeting's location cache
+    if (location !== undefined) {
+      await Meeting.findByIdAndUpdate(
+        existingParticipant.meetingId,
+        { $set: { locationsParticipantCount: -1 } }
+      );
+    }
+
+    res.json({ success: true, participant: formatParticipantResponse(participant) });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -167,10 +203,13 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Participant not found' });
     }
 
-    // Remove from meeting's participants array
+    // Remove from meeting's participants array and invalidate location cache
     await Meeting.findByIdAndUpdate(
       participant.meetingId,
-      { $pull: { participants: participant._id } }
+      { 
+        $pull: { participants: participant._id },
+        $set: { locationsParticipantCount: -1 }
+      }
     );
 
     await Participant.deleteOne({ _id: req.params.id });

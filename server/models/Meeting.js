@@ -1,5 +1,18 @@
 const mongoose = require('mongoose');
 
+// GeoJSON Point schema (reusable)
+const pointSchema = new mongoose.Schema({
+  type: {
+    type: String,
+    enum: ['Point'],
+    default: 'Point',
+  },
+  coordinates: {
+    type: [Number], // [longitude, latitude]
+    required: true,
+  }
+}, { _id: false });
+
 const meetingSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -36,13 +49,10 @@ const meetingSchema = new mongoose.Schema({
       type: Boolean,
       default: false,
     },
-    center: {
-      lat: Number,
-      lng: Number,
-    },
+    center: pointSchema, // GeoJSON Point
     radius: {
-      type: Number, // in miles
-      default: 4,
+      type: Number, // in meters
+      default: 6437, // ~4 miles in meters
     },
     address: String,
   },
@@ -50,10 +60,7 @@ const meetingSchema = new mongoose.Schema({
   creatorLocation: {
     buildingName: String,
     buildingAbbr: String,
-    coordinates: {
-      lat: Number,
-      lng: Number,
-    },
+    location: pointSchema, // GeoJSON Point
   },
   participants: [{
     type: mongoose.Schema.Types.ObjectId,
@@ -62,10 +69,30 @@ const meetingSchema = new mongoose.Schema({
   optimalLocation: {
     buildingName: String,
     buildingAbbr: String,
-    coordinates: {
-      lat: Number,
-      lng: Number,
-    },
+    location: pointSchema, // GeoJSON Point
+  },
+  // Cached optimal locations from Google Places API
+  optimalLocations: [{
+    id: String,
+    name: String,
+    abbr: String,
+    location: pointSchema, // GeoJSON Point
+    address: String,
+    avgDistance: Number,
+    maxDistance: Number,
+    totalDistance: Number,
+    fairnessScore: Number,
+    types: [String],
+  }],
+  // Track when locations were last calculated
+  locationsCalculatedAt: {
+    type: Date,
+    default: null,
+  },
+  // Track participant count when locations were calculated
+  locationsParticipantCount: {
+    type: Number,
+    default: 0,
   },
   optimalTime: {
     slots: [{
@@ -95,6 +122,10 @@ const meetingSchema = new mongoose.Schema({
 }, {
   timestamps: true,
 });
+
+// Add geospatial indexes
+meetingSchema.index({ 'locationConstraint.center': '2dsphere' });
+meetingSchema.index({ 'creatorLocation.location': '2dsphere' });
 
 // Generate unique share link before saving
 meetingSchema.pre('save', function(next) {

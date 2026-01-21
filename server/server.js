@@ -45,10 +45,12 @@ const connectDB = async () => {
 const authRoutes = require('./routes/auth');
 const meetingRoutes = require('./routes/meetings');
 const participantRoutes = require('./routes/participants');
+const placesRoutes = require('./routes/places');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/meetings', meetingRoutes);
 app.use('/api/participants', participantRoutes);
+app.use('/api/places', placesRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

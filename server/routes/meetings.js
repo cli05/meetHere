@@ -4,6 +4,63 @@ const Meeting = require('../models/Meeting');
 const Participant = require('../models/Participant');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
+const { findNearbyBuildings } = require('../utils/locationService');
+const { toGeoJSON, fromGeoJSON, calculateDistance } = require('../utils/geoUtils');
+
+// Helper function to format meeting response (convert GeoJSON back to lat/lng for frontend)
+function formatMeetingResponse(meeting) {
+  const obj = meeting.toObject ? meeting.toObject() : { ...meeting };
+  
+  // Convert creatorLocation
+  if (obj.creatorLocation?.location?.coordinates) {
+    obj.creatorLocation.coordinates = fromGeoJSON(obj.creatorLocation.location);
+    delete obj.creatorLocation.location;
+  }
+  
+  // Convert locationConstraint center
+  if (obj.locationConstraint?.center?.coordinates) {
+    const coords = fromGeoJSON(obj.locationConstraint.center);
+    obj.locationConstraint.center = coords;
+  }
+  
+  // Convert optimalLocation
+  if (obj.optimalLocation?.location?.coordinates) {
+    obj.optimalLocation.coordinates = fromGeoJSON(obj.optimalLocation.location);
+    delete obj.optimalLocation.location;
+  }
+  
+  // Convert optimalLocations array
+  if (obj.optimalLocations && Array.isArray(obj.optimalLocations)) {
+    obj.optimalLocations = obj.optimalLocations.map(loc => {
+      const result = { ...loc };
+      if (loc.location?.coordinates) {
+        const coords = fromGeoJSON(loc.location);
+        result.lat = coords.lat;
+        result.lng = coords.lng;
+        delete result.location;
+      }
+      return result;
+    });
+  }
+  
+  // Convert populated participants' locations
+  if (obj.participants && Array.isArray(obj.participants)) {
+    obj.participants = obj.participants.map(p => {
+      // Handle both populated objects and plain objects
+      const participant = p.toObject ? p.toObject() : { ...p };
+      
+      // Convert participant location from GeoJSON to lat/lng
+      if (participant.location?.location?.coordinates) {
+        participant.location.coordinates = fromGeoJSON(participant.location.location);
+        delete participant.location.location;
+      }
+      
+      return participant;
+    });
+  }
+  
+  return obj;
+}
 
 // Create a new meeting (Protected)
 router.post('/', protect, async (req, res) => {
@@ -12,16 +69,37 @@ router.post('/', protect, async (req, res) => {
 
     console.log('Creating meeting for user:', req.user._id);
 
+    // Convert creatorLocation to GeoJSON format
+    let geoCreatorLocation = null;
+    if (creatorLocation && creatorLocation.coordinates) {
+      geoCreatorLocation = {
+        buildingName: creatorLocation.buildingName,
+        buildingAbbr: creatorLocation.buildingAbbr,
+        location: toGeoJSON(creatorLocation.coordinates.lat, creatorLocation.coordinates.lng),
+      };
+    }
+
+    // Convert locationConstraint center to GeoJSON
+    let geoLocationConstraint = { enabled: false };
+    if (locationConstraint && locationConstraint.enabled) {
+      geoLocationConstraint = {
+        enabled: true,
+        center: locationConstraint.center ? 
+          toGeoJSON(locationConstraint.center.lat, locationConstraint.center.lng) : null,
+        radius: (locationConstraint.radius || 4) * 1609.34, // Convert miles to meters
+        address: locationConstraint.address,
+      };
+    }
+
     const meeting = new Meeting({
       name,
       description,
       availableDays,
       timeRange,
       timezone: timezone || 'America/New_York',
-      locationConstraint: locationConstraint || { enabled: false },
-      creatorLocation: creatorLocation || null,
+      locationConstraint: geoLocationConstraint,
+      creatorLocation: geoCreatorLocation,
       createdBy: req.user._id,
-      // Optimal time and location will be calculated when participants join
     });
 
     await meeting.save();
@@ -35,7 +113,7 @@ router.post('/', protect, async (req, res) => {
 
     res.status(201).json({ 
       success: true, 
-      meeting,
+      meeting: formatMeetingResponse(meeting),
       shareLink: meeting.shareLink,
     });
   } catch (error) {
@@ -54,7 +132,10 @@ router.get('/my-meetings', protect, async (req, res) => {
     // Check and update expiration status for all meetings
     await Promise.all(meetings.map(meeting => meeting.checkAndUpdateExpiration()));
 
-    res.json({ success: true, count: meetings.length, meetings });
+    // Format all meetings for frontend
+    const formattedMeetings = meetings.map(formatMeetingResponse);
+
+    res.json({ success: true, count: formattedMeetings.length, meetings: formattedMeetings });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -82,13 +163,13 @@ router.get('/:shareLink', async (req, res) => {
       });
     }
 
-    res.json({ success: true, meeting });
+    res.json({ success: true, meeting: formatMeetingResponse(meeting) });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// Get optimal locations for a meeting
+// Get optimal locations for a meeting (with caching)
 router.get('/:shareLink/optimal-locations', async (req, res) => {
   try {
     const meeting = await Meeting.findOne({ shareLink: req.params.shareLink })
@@ -98,9 +179,47 @@ router.get('/:shareLink/optimal-locations', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Meeting not found' });
     }
 
-    const optimalLocations = findOptimalLocations(meeting.participants, meeting);
+    const currentParticipantCount = meeting.participants.length;
+    const hasCreatorLocation = !!(meeting.creatorLocation?.location?.coordinates);
+    const totalLocations = currentParticipantCount + (hasCreatorLocation ? 1 : 0);
+
+    // Check if we need to recalculate
+    const needsRecalculation = 
+      !meeting.optimalLocations || 
+      meeting.optimalLocations.length === 0 ||
+      meeting.locationsParticipantCount !== totalLocations;
+
+    if (needsRecalculation) {
+      console.log('Calculating optimal locations (cache miss)');
+      
+      const optimalLocations = await findOptimalLocations(meeting.participants, meeting);
+      
+      // Cache the results
+      meeting.optimalLocations = optimalLocations;
+      meeting.locationsCalculatedAt = new Date();
+      meeting.locationsParticipantCount = totalLocations;
+      await meeting.save();
+
+      // Format response for frontend (convert GeoJSON to lat/lng)
+      const formattedLocations = optimalLocations.map(loc => ({
+        ...loc,
+        lat: loc.location?.coordinates?.[1],
+        lng: loc.location?.coordinates?.[0],
+      }));
+
+      return res.json({ success: true, optimalLocations: formattedLocations, cached: false });
+    }
+
+    console.log('Returning cached optimal locations');
     
-    res.json({ success: true, optimalLocations });
+    // Format cached response for frontend
+    const formattedLocations = meeting.optimalLocations.map(loc => ({
+      ...loc.toObject ? loc.toObject() : loc,
+      lat: loc.location?.coordinates?.[1] || loc.lat,
+      lng: loc.location?.coordinates?.[0] || loc.lng,
+    }));
+    
+    res.json({ success: true, optimalLocations: formattedLocations, cached: true });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -110,7 +229,8 @@ router.get('/:shareLink/optimal-locations', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const meetings = await Meeting.find().populate('participants');
-    res.json({ success: true, meetings });
+    const formattedMeetings = meetings.map(formatMeetingResponse);
+    res.json({ success: true, meetings: formattedMeetings });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -135,7 +255,7 @@ router.put('/:shareLink', async (req, res) => {
     meeting.optimalLocation = optimalLocation;
 
     await meeting.save();
-    res.json({ success: true, meeting });
+    res.json({ success: true, meeting: formatMeetingResponse(meeting) });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -286,169 +406,83 @@ function calculateOptimalTime(participants) {
   return null;
 }
 
-// Helper function to calculate optimal location (geographic center)
+// Helper function to calculate optimal location (geographic center) - updated for GeoJSON
 function calculateOptimalLocation(participants) {
   if (!participants || participants.length === 0) {
     return null;
   }
 
   const locations = participants
-    .filter(p => p.location && p.location.coordinates)
-    .map(p => p.location.coordinates);
+    .filter(p => p.location?.location?.coordinates)
+    .map(p => p.location.location);
 
   if (locations.length === 0) {
     return null;
   }
 
-  // Calculate geographic center
-  const avgLat = locations.reduce((sum, loc) => sum + loc.lat, 0) / locations.length;
-  const avgLng = locations.reduce((sum, loc) => sum + loc.lng, 0) / locations.length;
+  // Calculate geographic center using GeoJSON coordinates
+  const avgLng = locations.reduce((sum, loc) => sum + loc.coordinates[0], 0) / locations.length;
+  const avgLat = locations.reduce((sum, loc) => sum + loc.coordinates[1], 0) / locations.length;
 
-  // For MVP, return the center coordinates
-  // In production, use Google Maps API to find nearest building
   return {
-    coordinates: {
-      lat: avgLat,
-      lng: avgLng,
-    },
+    location: toGeoJSON(avgLat, avgLng),
     buildingName: 'Calculated Center Point',
     buildingAbbr: 'CENTER',
   };
 }
 
-// Helper function to calculate distance between two coordinates (Haversine formula)
-function calculateDistance(lat1, lng1, lat2, lng2) {
-  const R = 6371e3; // Earth's radius in meters
-  const φ1 = (lat1 * Math.PI) / 180;
-  const φ2 = (lat2 * Math.PI) / 180;
-  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-  const Δλ = ((lng2 - lng1) * Math.PI) / 180;
-
-  const a =
-    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return R * c; // Distance in meters
-}
-
-// Helper function to find optimal meeting locations from campus buildings
-function findOptimalLocations(participants, meeting) {
-  // Updated with precise GPS coordinates for each Purdue building
-  const campusBuildings = [
-    // Academic Buildings - Core Campus
-    { id: 1, name: 'Lawson Computer Science Building', abbr: 'LWSN', lat: 40.427892, lng: -86.916877 },
-    { id: 2, name: 'Wilmeth Active Learning Center', abbr: 'WALC', lat: 40.427378, lng: -86.913020 },
-    { id: 3, name: 'Mathematical Sciences Building', abbr: 'MATH', lat: 40.425086, lng: -86.915718 },
-    { id: 4, name: 'Electrical Engineering Building', abbr: 'EE', lat: 40.428920, lng: -86.911270 },
-    { id: 5, name: 'Felix Haas Hall', abbr: 'HAAS', lat: 40.426832, lng: -86.913291 },
-    { id: 6, name: 'Recitation Building', abbr: 'REC', lat: 40.424789, lng: -86.910712 },
-    { id: 7, name: 'Stanley Coulter Hall', abbr: 'SC', lat: 40.424352, lng: -86.912890 },
-    { id: 8, name: 'Physics Building', abbr: 'PHYS', lat: 40.428105, lng: -86.912348 },
-    { id: 9, name: 'Lilly Hall of Life Sciences', abbr: 'LILY', lat: 40.422847, lng: -86.917012 },
-    { id: 10, name: 'Class of 1950 Lecture Hall', abbr: 'CL50', lat: 40.424536, lng: -86.914523 },
-    
-    // Engineering Buildings
-    { id: 11, name: 'Neil Armstrong Hall of Engineering', abbr: 'ARMS', lat: 40.431042, lng: -86.915198 },
-    { id: 12, name: 'Grissom Hall', abbr: 'GRIS', lat: 40.429312, lng: -86.910456 },
-    { id: 13, name: 'Mechanical Engineering Building', abbr: 'ME', lat: 40.428743, lng: -86.913567 },
-    { id: 14, name: 'Materials and Electrical Engineering Building', abbr: 'MSEE', lat: 40.428412, lng: -86.910723 },
-    { id: 15, name: 'Civil Engineering Building', abbr: 'CIVL', lat: 40.429087, lng: -86.912198 },
-    { id: 16, name: 'Chaffee Hall', abbr: 'CHAF', lat: 40.414998, lng: -86.920712 },
-    
-    // Libraries
-    { id: 17, name: 'Hicks Undergraduate Library', abbr: 'HICKS', lat: 40.424678, lng: -86.917834 },
-    { id: 18, name: 'Humanities Social Sciences and Education Library', abbr: 'HSSE', lat: 40.426534, lng: -86.911678 },
-    { id: 19, name: 'Mathematical Sciences Library', abbr: 'MLIB', lat: 40.425243, lng: -86.916012 },
-    
-    // Student Centers & Unions
-    { id: 20, name: 'Purdue Memorial Union', abbr: 'PMU', lat: 40.424712, lng: -86.910234 },
-    { id: 21, name: 'Stewart Center', abbr: 'STEW', lat: 40.425934, lng: -86.912012 },
-    { id: 22, name: 'Cordova Recreational Sports Center', abbr: 'CoRec', lat: 40.428934, lng: -86.920312 },
-    
-    // Business & Management
-    { id: 23, name: 'Krannert Building', abbr: 'KRAN', lat: 40.423567, lng: -86.918756 },
-    { id: 24, name: 'Rawls Hall', abbr: 'RAWL', lat: 40.423089, lng: -86.919234 },
-    { id: 25, name: 'Krach Leadership Center', abbr: 'KRCH', lat: 40.428023, lng: -86.921456 },
-    
-    // Science Buildings
-    { id: 26, name: 'Wetherill Laboratory of Chemistry', abbr: 'WTHR', lat: 40.425678, lng: -86.912567 },
-    { id: 27, name: 'Brown Laboratory', abbr: 'BRNG', lat: 40.426123, lng: -86.914234 },
-    { id: 28, name: 'Biochemistry Building', abbr: 'BCHM', lat: 40.422456, lng: -86.918012 },
-    { id: 29, name: 'Hansen Life Sciences Research Building', abbr: 'HANS', lat: 40.421978, lng: -86.918789 },
-    
-    // Agriculture
-    { id: 30, name: 'Smith Hall', abbr: 'SMTH', lat: 40.420234, lng: -86.916789 },
-    { id: 31, name: 'Pfendler Hall', abbr: 'PFEN', lat: 40.419678, lng: -86.917234 },
-    { id: 32, name: 'Agricultural Administration Building', abbr: 'AGAD', lat: 40.419012, lng: -86.916512 },
-    
-    // Arts & Humanities
-    { id: 33, name: 'Yue-Kong Pao Hall of Visual and Performing Arts', abbr: 'PAO', lat: 40.427234, lng: -86.908456 },
-    { id: 34, name: 'Patti and Rusty Rueff Hall', abbr: 'PRUF', lat: 40.426789, lng: -86.907890 },
-    { id: 35, name: 'Elliott Hall of Music', abbr: 'ELLT', lat: 40.427912, lng: -86.915012 },
-    { id: 36, name: 'Peirce Hall', abbr: 'PRCE', lat: 40.423890, lng: -86.911234 },
-    
-    // Residence Halls - Northwestern Area
-    { id: 37, name: 'Earhart Hall', abbr: 'EAR', lat: 40.431678, lng: -86.924567 },
-    { id: 38, name: 'First Street Towers', abbr: 'FST', lat: 40.432456, lng: -86.922012 },
-    { id: 39, name: 'Hillenbrand Hall', abbr: 'HILL', lat: 40.434234, lng: -86.924890 },
-    { id: 40, name: 'Harrison Hall', abbr: 'HARR', lat: 40.435012, lng: -86.923456 },
-    { id: 41, name: 'Tarkington Hall', abbr: 'TARK', lat: 40.430234, lng: -86.922345 },
-    { id: 42, name: 'Wiley Hall', abbr: 'WILY', lat: 40.429567, lng: -86.921012 },
-    { id: 43, name: 'Windsor Halls', abbr: 'WNDS', lat: 40.428234, lng: -86.919678 },
-    { id: 44, name: 'Hawkins Hall', abbr: 'HAWK', lat: 40.422345, lng: -86.919123 },
-    
-    // Administrative Buildings
-    { id: 45, name: 'Hovde Hall', abbr: 'HOVD', lat: 40.425456, lng: -86.910890 },
-    { id: 46, name: 'Schleman Hall', abbr: 'SCHL', lat: 40.426012, lng: -86.910234 },
-    { id: 47, name: 'Young Hall', abbr: 'YONG', lat: 40.423456, lng: -86.920123 },
-    
-    // Athletic Facilities
-    { id: 48, name: 'Mackey Arena', abbr: 'MACK', lat: 40.432078, lng: -86.916234 },
-    { id: 49, name: 'Ross-Ade Stadium', abbr: 'ROSS', lat: 40.436012, lng: -86.922567 },
-    { id: 50, name: 'Mollenkopf Athletic Center', abbr: 'MAC', lat: 40.434567, lng: -86.921012 },
-    
-    // Other Important Buildings
-    { id: 51, name: 'Knoy Hall', abbr: 'KNOY', lat: 40.427345, lng: -86.916012 },
-    { id: 52, name: 'University Hall', abbr: 'UNIV', lat: 40.423789, lng: -86.913456 },
-    { id: 53, name: 'Beering Hall', abbr: 'BEER', lat: 40.425123, lng: -86.911678 },
-    { id: 54, name: 'Heavilon Hall', abbr: 'HEAV', lat: 40.424012, lng: -86.912890 },
-    { id: 55, name: 'Stone Hall', abbr: 'STON', lat: 40.420567, lng: -86.917890 },
-    { id: 56, name: 'Pharmacy Building', abbr: 'PHAR', lat: 40.428567, lng: -86.908123 },
-    { id: 57, name: 'Nursing Building', abbr: 'NURS', lat: 40.429012, lng: -86.907456 },
-  ];
-
+// Helper function to find optimal meeting locations using Google Places API
+async function findOptimalLocations(participants, meeting) {
   // Get all participant locations (including creator if they set one)
   const participantLocations = [];
   
-  // Add creator location if exists
-  if (meeting.creatorLocation && meeting.creatorLocation.coordinates) {
-    participantLocations.push(meeting.creatorLocation.coordinates);
+  // Add creator location if exists (now in GeoJSON format)
+  if (meeting.creatorLocation?.location?.coordinates) {
+    participantLocations.push(meeting.creatorLocation.location);
   }
   
-  // Add participant locations
+  // Add participant locations (now in GeoJSON format)
   participants.forEach(p => {
-    if (p.location && p.location.coordinates) {
-      participantLocations.push(p.location.coordinates);
+    if (p.location?.location?.coordinates) {
+      participantLocations.push(p.location.location);
     }
   });
 
-  console.log('Participant locations:', JSON.stringify(participantLocations, null, 2));
+  console.log('Participant locations (GeoJSON):', JSON.stringify(participantLocations, null, 2));
 
   if (participantLocations.length === 0) {
     return [];
   }
 
+  // Calculate geographic center using GeoJSON coordinates
+  const centerLng = participantLocations.reduce((sum, loc) => sum + loc.coordinates[0], 0) / participantLocations.length;
+  const centerLat = participantLocations.reduce((sum, loc) => sum + loc.coordinates[1], 0) / participantLocations.length;
+
+  console.log('Geographic center:', { lat: centerLat, lng: centerLng });
+
+  // Fetch nearby buildings from Google Places API
+  let buildings;
+  try {
+    buildings = await findNearbyBuildings(centerLat, centerLng, 1500);
+    console.log(`Found ${buildings.length} buildings from Google Places API`);
+  } catch (error) {
+    console.error('Failed to fetch buildings from API:', error.message);
+    return [];
+  }
+
+  if (buildings.length === 0) {
+    console.log('No buildings found near the center point');
+    return [];
+  }
+
   // Calculate total distance from each building to all participants
-  const buildingScores = campusBuildings.map(building => {
+  const buildingScores = buildings.map(building => {
+    const buildingPoint = toGeoJSON(building.lat, building.lng);
     let totalDistance = 0;
     let maxDistance = 0;
     
     participantLocations.forEach(location => {
-      const distance = calculateDistance(
-        building.lat, building.lng,
-        location.lat, location.lng
-      );
+      const distance = calculateDistance(buildingPoint, location);
       totalDistance += distance;
       maxDistance = Math.max(maxDistance, distance);
     });
@@ -456,7 +490,12 @@ function findOptimalLocations(participants, meeting) {
     const avgDistance = totalDistance / participantLocations.length;
 
     return {
-      ...building,
+      id: building.id,
+      name: building.name,
+      abbr: building.abbr,
+      location: buildingPoint, // Store as GeoJSON
+      address: building.address,
+      types: building.types,
       avgDistance: Math.round(avgDistance), // meters
       maxDistance: Math.round(maxDistance), // meters
       totalDistance: Math.round(totalDistance),
